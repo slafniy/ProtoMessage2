@@ -5,7 +5,19 @@ using System.Linq;
 
 namespace ProtoMessageOriginal
 {
-    public class ProtoMessage
+    public interface IProtoMessage<TType> where TType : IProtoMessage<TType>, new()
+    {
+        List<TType> GetElementList(string name);
+        TType GetElement(string name);
+        List<string> GetAttributeList(string name);
+        T GetAttribute<T>(string name) where T : struct;
+        T? GetAttributeOrNull<T>(string name) where T : struct;
+        string GetAttribute(string name);
+        void Parse(string text);
+        List<string> GetKeys();
+    }
+
+    public class ProtoMessage : IProtoMessage<ProtoMessage>
     {
         private readonly List<string> _text = new List<string>();
         private readonly Dictionary<char, List<string>> _mNonParsedAttributes = new Dictionary<char, List<string>>();

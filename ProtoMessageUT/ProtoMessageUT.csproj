@@ -36,9 +36,9 @@
         <Compile Include="Properties\AssemblyInfo.cs" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\ProtoMessageOriginal\ProtoMessageOriginal.csproj">
+      <ProjectReference Include="..\ProtoMessage\ProtoMessage.csproj">
         <Project>{14241aae-0352-43c8-ae13-8db898d5c5f4}</Project>
-        <Name>ProtoMessageOriginal</Name>
+        <Name>ProtoMessage</Name>
       </ProjectReference>
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

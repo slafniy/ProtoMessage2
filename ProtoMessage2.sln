@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProtoMessageOriginal", "ProtoMessageOriginal\ProtoMessageOriginal.csproj", "{14241AAE-0352-43C8-AE13-8DB898D5C5F4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProtoMessage", "ProtoMessage\ProtoMessage.csproj", "{14241AAE-0352-43C8-AE13-8DB898D5C5F4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProtoMessageUT", "ProtoMessageUT\ProtoMessageUT.csproj", "{F9282756-8B82-4894-8D72-257ABB0A87CE}"
 EndProject
