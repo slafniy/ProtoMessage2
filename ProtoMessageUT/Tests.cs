@@ -26,26 +26,32 @@ namespace ProtoMessageUT
             + $"    scaled_price: {SecondScaledPrice}\n"
             + "  }\n"
             + "}";
-
-        [Test]
-        public void ProtoParse()
+        
+        private void ProtoParse<T>() where T : IProtoMessage<T>, new()
         {
-            var pm = new ProtoMessage();
+            var pm = new T();
             pm.Parse(_protoText);
             pm = pm.GetElement("real_time_market_data");
-            var listPm = pm.GetElementList("quote");
+            List<T> listPm = pm.GetElementList("quote");
             Assert.IsNotNull(pm);
             Assert.That(pm.GetAttribute("contract_id"), Is.EqualTo(ContractId));
             Assert.That(listPm.Count, Is.EqualTo(2));
-            foreach (var protoMessage in listPm)
+            foreach (T protoMessage in listPm)
             {
-                var attrList = protoMessage.GetAttributeList("scaled_price");
+                List<string> attrList = protoMessage.GetAttributeList("scaled_price");
                 Assert.That(protoMessage.GetAttribute("scaled_price"), Is.EqualTo(FirstScaledPrice));
                 Assert.That(attrList.Count, Is.EqualTo(2));
                 Assert.That(attrList[1], Is.EqualTo(SecondScaledPrice));
             }
 
             Assert.AreEqual(new List<string> {"quote", "quote"}, pm.GetKeys());
+        }
+
+        [Test]
+        public void ProtoParse()
+        {
+            ProtoParse<ProtoMessage>();
+            ProtoParse<ProtoMessage2>();
         }
     }
 }
