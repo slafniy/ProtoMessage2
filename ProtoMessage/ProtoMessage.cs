@@ -53,9 +53,12 @@ namespace ProtoMessageOriginal
         private List<string> ParseAndReturnAttributes(string name)
         {
             char firstChar = name[0];
-            if (!_mNonParsedAttributes.TryGetValue(firstChar, out _nonParsedList)) return new List<string>();
+            if (!_mNonParsedAttributes.TryGetValue(firstChar, out _nonParsedList))
+            {
+                return new List<string>();
+            }
 
-            var nonParsedAttributes = _nonParsedList.Where(
+            string[] nonParsedAttributes = _nonParsedList.Where(
                 a => a.Length > name.Length + 2 && a.Substring(0, name.Length) == name).ToArray();
 
             _outList = new List<string>();
@@ -77,7 +80,7 @@ namespace ProtoMessageOriginal
             string attr = GetAttribute(name);
             return (T) Convert.ChangeType(attr, typeof(T), CultureInfo.InvariantCulture);
         }
-      
+
         public T? GetAttributeOrNull<T>(string name) where T : struct
         {
             string attr = GetAttribute(name);
@@ -85,13 +88,17 @@ namespace ProtoMessageOriginal
             {
                 return null;
             }
+
             return (T) Convert.ChangeType(attr, typeof(T), CultureInfo.InvariantCulture);
         }
 
-        
+
         public string GetAttribute(string name)
         {
-            if (_mAttributes.TryGetValue(name, out _outList)) return _outList.Count > 0 ? _outList[0] : null;
+            if (_mAttributes.TryGetValue(name, out _outList))
+            {
+                return _outList.Count > 0 ? _outList[0] : null;
+            }
 
             if (_text.Count != 0)
             {
@@ -99,7 +106,10 @@ namespace ProtoMessageOriginal
                 _text.Clear();
             }
 
-            if (!_mNonParsedAttributes.TryGetValue(name[0], out _outList)) return null;
+            if (!_mNonParsedAttributes.TryGetValue(name[0], out _outList))
+            {
+                return null;
+            }
 
             var attr = parseAttribute(_outList.Find(a => a.Length > name.Length + 2 &&
                                                          a.Substring(0, name.Length) == name), name.Length);
@@ -111,15 +121,16 @@ namespace ProtoMessageOriginal
 
         private string parseAttribute(string nonParsedAttribute, int idx)
         {
-            if (nonParsedAttribute == null) return null;
-            idx += 2;
-
-            if (nonParsedAttribute[idx] == '\"')
+            if (nonParsedAttribute == null)
             {
-                return nonParsedAttribute.Substring(idx + 1, nonParsedAttribute.Length - idx - 2);
+                return null;
             }
 
-            return nonParsedAttribute.Substring(idx, nonParsedAttribute.Length - idx);
+            idx += 2;
+
+            return nonParsedAttribute[idx] == '\"'
+                ? nonParsedAttribute.Substring(idx + 1, nonParsedAttribute.Length - idx - 2)
+                : nonParsedAttribute.Substring(idx, nonParsedAttribute.Length - idx);
         }
 
         public List<ProtoMessage> GetElementList(string name)
@@ -157,11 +168,11 @@ namespace ProtoMessageOriginal
 
         private void ParseMessageBody(string[] lines)
         {
-            bool isTopLevel = false; // level 0 
-            string protoName = String.Empty;
-            ProtoMessage otherProto = new ProtoMessage(); // ProtoMessage level > 0
+            var isTopLevel = false; // level 0 
+            var protoName = string.Empty;
+            var otherProto = new ProtoMessage(); // ProtoMessage level > 0
 
-            foreach (var line in lines.Where(l => l != "")) // last line == "", when parse "msg" attribute
+            foreach (string line in lines.Where(l => l != "")) // last line == "", when parse "msg" attribute
             {
                 if (line.Length == 1) // where line == "}" (first level, without spaces)
                 {
