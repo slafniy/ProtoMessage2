@@ -180,7 +180,7 @@ namespace ProtoMessageOriginal
         public List<ProtoMessage2> GetElementList(string name)
         {
             ParseCurrentLevel();
-            return _subMessages.ContainsKey(name) ? _subMessages[name] : null;
+            return _subMessages.ContainsKey(name) ? _subMessages[name] : new List<ProtoMessage2>();
         }
 
         public ProtoMessage2 GetElement(string name)

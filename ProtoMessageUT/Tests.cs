@@ -8,6 +8,7 @@ namespace ProtoMessageUT
     internal class ProtoBuffUt
     {
         private const string RootMessage = "root_message";
+        private const string NotExistingMessage = "not_existing_message";
         
         private const string SomeText = "jedi_phrases";
         private const string SomeTextVal = "- These aren`t the droids you're looking for!";
@@ -45,12 +46,14 @@ namespace ProtoMessageUT
             var pm = new T();
             pm.Parse(_protoText);
             pm = pm.GetElement(RootMessage);
-            List<T> listPm = pm.GetElementList(RepeatedSubmessage);
             Assert.IsNotNull(pm);
-            
+
+            Assert.AreEqual(new List<T>(), pm.GetElementList(NotExistingMessage));
+
             Assert.AreEqual(SomeSingleNumberVal, pm.GetAttribute(SomeSingleNumber));
             Assert.AreEqual(SomeTextVal, pm.GetAttribute(SomeText));
-            
+
+            List<T> listPm = pm.GetElementList(RepeatedSubmessage);
             Assert.That(listPm.Count, Is.EqualTo(2));
             foreach (T protoMessage in listPm)
             {
