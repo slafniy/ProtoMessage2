@@ -16,20 +16,18 @@ namespace ProtoMessageOriginal
         public readonly MsgMatrixElementType Type;
         public readonly int Index; // global "position" in text, '{' for message and ':' for attribute
         public readonly int Level; // increases on each '{' decreases on each '}'
-        public readonly int Number; // increases on each '{', NEVER decreases
 
-        public MsgMatrixElement(MsgMatrixElementType type, int index, int level, int number)
+        public MsgMatrixElement(MsgMatrixElementType type, int index, int level)
         {
             Type = type;
             Index = index;
             Level = level;
-            Number = number;
         }
 
         // For debug purposes
         public override string ToString()
         {
-            return $"Index: {Index} Level: {Level} Number: {Number} Type: {Type.ToString()}";
+            return $"Index: {Index} Level: {Level} Type: {Type.ToString()}";
         }
     }
 
@@ -52,7 +50,7 @@ namespace ProtoMessageOriginal
     {
         private readonly List<MsgMatrixElement> _matrix = new List<MsgMatrixElement>();
         private string _protoAsText;
-        private int _level = 1;
+        private readonly int _level = 1;
 
         private readonly Fields<string> _attributes = new Fields<string>();
         private readonly Fields<ProtoMessage2> _subMessages = new Fields<ProtoMessage2>();
@@ -68,25 +66,23 @@ namespace ProtoMessageOriginal
         private void ParseCurrentLevel()
         {
             int msgStartPos = 0;
-            int msgStartNumber = 0;
             for (int i = 0; i < _matrix.Count; i++)
             {
                 MsgMatrixElement el = _matrix[i];
                 if (el.Type == MsgMatrixElementType.MessageStart && el.Level == _level)
                 {
                     msgStartPos = i;
-                    msgStartNumber = el.Number;
                 }
 
                 // We've found the end of current message
-                if (el.Type == MsgMatrixElementType.MessageEnd && el.Level == _level - 1)
+                if (el.Type == MsgMatrixElementType.MessageEnd && el.Level == _level)
                 {
                     _subMessages.AddField(GetName(_matrix[msgStartPos].Index),
                         new ProtoMessage2(_matrix.GetRange(msgStartPos + 1, i - msgStartPos - 1), 
                             _level + 1, _protoAsText));
                 }
 
-                if (el.Level == _level && el.Type == MsgMatrixElementType.Attribute)
+                if (el.Level == _level - 1 && el.Type == MsgMatrixElementType.Attribute)
                 {
                     ParseAttribute(el.Index);
                 }
@@ -127,7 +123,6 @@ namespace ProtoMessageOriginal
         {
             _protoAsText = protoAsText;
             int currentLevel = 0;
-            int currentNumber = 0;
             for (int i = 0; i < _protoAsText.Length; i++)
             {
                 char c = _protoAsText[i];
@@ -135,18 +130,15 @@ namespace ProtoMessageOriginal
                 {
                     case ':':
                         _matrix.Add(
-                            new MsgMatrixElement(MsgMatrixElementType.Attribute, i, currentLevel, currentNumber));
+                            new MsgMatrixElement(MsgMatrixElementType.Attribute, i, currentLevel));
                         break;
                     case '{':
-                        currentNumber++;
                         currentLevel++;
-                        _matrix.Add(new MsgMatrixElement(MsgMatrixElementType.MessageStart, i, currentLevel,
-                            currentNumber));
+                        _matrix.Add(new MsgMatrixElement(MsgMatrixElementType.MessageStart, i, currentLevel));
                         break;
                     case '}':
+                        _matrix.Add(new MsgMatrixElement(MsgMatrixElementType.MessageEnd, i, currentLevel));
                         currentLevel--;
-                        _matrix.Add(new MsgMatrixElement(MsgMatrixElementType.MessageEnd, i, currentLevel,
-                            currentNumber));
                         break;
                 }
             }
@@ -165,7 +157,7 @@ namespace ProtoMessageOriginal
 
         public ProtoMessage2 GetElement(string name)
         {
-            return _subMessages.ContainsKey(name) ? _subMessages[name].Count == 1 ? _subMessages[name][0] : null : null;
+            return _subMessages.ContainsKey(name) && _subMessages[name].Count > 0 ? _subMessages[name][0] : null;
         }
 
         public List<string> GetAttributeList(string name)
@@ -185,12 +177,14 @@ namespace ProtoMessageOriginal
 
         public string GetAttribute(string name)
         {
-            return _attributes.ContainsKey(name) ? _attributes[name].Count == 1 ? _attributes[name][0] : null : null;
+            // TODO: Yes, it really should work in this way! I don't like this logic. Same for GetElement
+            // TODO: I'd return null in case of repeated message
+            return _attributes.ContainsKey(name) && _attributes[name].Count > 0 ? _attributes[name][0] : null;
         }
 
         public List<string> GetKeys()
         {
-            return _subMessages.Keys.ToList();
+            return (from kv in _subMessages from _ in kv.Value select kv.Key).ToList();
         }
     }
 }
