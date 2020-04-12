@@ -7,34 +7,50 @@ namespace ProtoMessageUT
     [TestFixture]
     internal class ProtoBuffUt
     {
-        private const string ContractId = "45";
+        private const string RootMessage = "root_message";
+        
+        private const string SomeText = "jedi_phrases";
+        private const string SomeTextVal = "- These aren`t the droids you're looking for!";
+
+        private const string SomeSingleNumber = "favourite_number";
+        private const string SomeSingleNumberVal = "7";
+
         private const string FirstScaledPrice = "5883";
+
         private const string SecondScaledPrice = "14";
+        
+        private const string RepeatedSubmessage = "repeated_sub_message";
+
+        
 
         private readonly string _protoText =
-            "real_time_market_data {\n"
-            + $"  contract_id: {ContractId}\n"
-            + "  quote {\n"
+            $"{RootMessage} {{\n"
+            + $"  {SomeSingleNumber}: {SomeSingleNumberVal}\n"
+            + $"  {SomeText}: \"{SomeTextVal}\"\n"
+            + $"  {RepeatedSubmessage} {{\n"
             + "    type: 1\n"
             + "    quote_utc_time: 638427648\n"
             + $"    scaled_price: {FirstScaledPrice}\n"
             + $"    scaled_price: {SecondScaledPrice}\n"
             + "  }\n"
-            + "  quote {\n"
+            + $"  {RepeatedSubmessage} {{\n"
             + "    type: 2\n"
             + $"    scaled_price: {FirstScaledPrice}\n"
             + $"    scaled_price: {SecondScaledPrice}\n"
             + "  }\n"
             + "}";
-        
+
         private void ProtoParse<T>() where T : IProtoMessage<T>, new()
         {
             var pm = new T();
             pm.Parse(_protoText);
-            pm = pm.GetElement("real_time_market_data");
-            List<T> listPm = pm.GetElementList("quote");
+            pm = pm.GetElement(RootMessage);
+            List<T> listPm = pm.GetElementList(RepeatedSubmessage);
             Assert.IsNotNull(pm);
-            Assert.That(pm.GetAttribute("contract_id"), Is.EqualTo(ContractId));
+            
+            Assert.AreEqual(SomeSingleNumberVal, pm.GetAttribute(SomeSingleNumber));
+            Assert.AreEqual(SomeTextVal, pm.GetAttribute(SomeText));
+            
             Assert.That(listPm.Count, Is.EqualTo(2));
             foreach (T protoMessage in listPm)
             {
@@ -44,7 +60,7 @@ namespace ProtoMessageUT
                 Assert.That(attrList[1], Is.EqualTo(SecondScaledPrice));
             }
 
-            Assert.AreEqual(new List<string> {"quote", "quote"}, pm.GetKeys());
+            Assert.AreEqual(new List<string> {RepeatedSubmessage, RepeatedSubmessage}, pm.GetKeys());
         }
 
         [Test]

@@ -52,8 +52,7 @@ namespace ProtoMessageOriginal
         private readonly List<MsgMatrixElement> _matrix = new List<MsgMatrixElement>();
         private string _protoAsText;
         private readonly int _level = 1;
-
-        // TODO: don't save quotes in strings!
+        
         private readonly Fields<string> _attributes = new Fields<string>();
         private readonly Fields<ProtoMessage2> _subMessages = new Fields<ProtoMessage2>();
 
@@ -102,8 +101,8 @@ namespace ProtoMessageOriginal
             {
                 index++;
             }
-
-            string value = _protoAsText.Substring(start, index - start);
+            
+            string value = _protoAsText.Substring(start, index - start).Trim('"');
 
             _attributes.AddField(name, value); // TODO: need to make it lazy
         }
