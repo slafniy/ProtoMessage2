@@ -50,7 +50,7 @@ namespace ProtoMessageUT
         [Test]
         public void ProtoParse()
         {
-            // ProtoParse<ProtoMessage>();
+            ProtoParse<ProtoMessage>();
             ProtoParse<ProtoMessage2>();
         }
     }

@@ -103,11 +103,11 @@ namespace ProtoMessageBench
                     continue;
                 }
 
-                // Assert.AreEqual("some string value", singleString);
-                // Assert.AreEqual(123, intAttr);
-                // Assert.AreEqual(123.2342425, doubleAttr, 0.000001);
-                // Assert.AreEqual("638427648", repeatedInt[0]);
-                // Assert.AreEqual(2321543, subMsgInt);
+                // Assert.AreEqual("some string value", singleString);  // TODO: fix quotes!
+                Assert.AreEqual(123, intAttr);
+                Assert.AreEqual(123.2342425, doubleAttr, 0.000001);
+                Assert.AreEqual("638427648", repeatedInt[0]);
+                Assert.AreEqual(2321543, subMsgInt);
             }
 
             stopwatch.Stop();

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace ProtoMessageOriginal
@@ -52,6 +53,7 @@ namespace ProtoMessageOriginal
         private string _protoAsText;
         private readonly int _level = 1;
 
+        // TODO: don't save quotes in strings!
         private readonly Fields<string> _attributes = new Fields<string>();
         private readonly Fields<ProtoMessage2> _subMessages = new Fields<ProtoMessage2>();
 
@@ -167,12 +169,19 @@ namespace ProtoMessageOriginal
 
         public T GetAttribute<T>(string name) where T : struct
         {
-            throw new NotImplementedException();
+            string attr = GetAttribute(name);
+            return (T) Convert.ChangeType(attr, typeof(T), CultureInfo.InvariantCulture);
         }
 
         public T? GetAttributeOrNull<T>(string name) where T : struct
         {
-            throw new NotImplementedException();
+            string attr = GetAttribute(name);
+            if (attr == null)
+            {
+                return null;
+            }
+
+            return (T) Convert.ChangeType(attr, typeof(T), CultureInfo.InvariantCulture);
         }
 
         public string GetAttribute(string name)
