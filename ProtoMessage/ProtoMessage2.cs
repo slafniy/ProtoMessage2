@@ -51,6 +51,7 @@ namespace ProtoMessageOriginal
         private readonly List<MsgMatrixElement> _matrix = new List<MsgMatrixElement>();
         private string _protoAsText;
         private readonly int _level = 1;
+        private bool _isParsed;
         
         private readonly Fields<Attribute> _attributes = new Fields<Attribute>();
         private readonly Fields<ProtoMessage2> _subMessages = new Fields<ProtoMessage2>();
@@ -60,11 +61,18 @@ namespace ProtoMessageOriginal
             _matrix = matrix;
             _level = level;
             _protoAsText = protoAsText;
-            ParseCurrentLevel();
+            // ParseCurrentLevel();
         }
 
         private void ParseCurrentLevel()
         {
+            if (_isParsed)
+            {
+                return;
+            }
+
+            _isParsed = true;
+            
             int msgStartPos = 0;
             for (int i = 0; i < _matrix.Count; i++)
             {
@@ -162,7 +170,7 @@ namespace ProtoMessageOriginal
                 }
             }
 
-            ParseCurrentLevel();
+            // ParseCurrentLevel();
         }
 
         public ProtoMessage2()
@@ -171,21 +179,25 @@ namespace ProtoMessageOriginal
 
         public List<ProtoMessage2> GetElementList(string name)
         {
+            ParseCurrentLevel();
             return _subMessages.ContainsKey(name) ? _subMessages[name] : null;
         }
 
         public ProtoMessage2 GetElement(string name)
         {
+            ParseCurrentLevel();
             return _subMessages.ContainsKey(name) && _subMessages[name].Count > 0 ? _subMessages[name][0] : null;
         }
 
         public List<string> GetAttributeList(string name)
         {
+            ParseCurrentLevel();
             return !_attributes.ContainsKey(name) ? null : _attributes[name].Select(attr => attr.Value).ToList();
         }
 
         public T GetAttribute<T>(string name) where T : struct
         {
+            ParseCurrentLevel();
             string attr = GetAttribute(name);
             return (T) Convert.ChangeType(attr, typeof(T), CultureInfo.InvariantCulture);
         }
@@ -203,6 +215,7 @@ namespace ProtoMessageOriginal
 
         public string GetAttribute(string name)
         {
+            ParseCurrentLevel();
             // TODO: Yes, it really should work in this way! I don't like this logic. Same for GetElement
             // TODO: I'd return null in case of repeated message
             return _attributes.ContainsKey(name) && _attributes[name].Count > 0 ? _attributes[name][0].Value : null;
@@ -210,6 +223,7 @@ namespace ProtoMessageOriginal
 
         public List<string> GetKeys()
         {
+            ParseCurrentLevel();
             return (from kv in _subMessages from _ in kv.Value select kv.Key).ToList();
         }
     }
