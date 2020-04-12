@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace ProtoMessageOriginal
@@ -9,12 +10,16 @@ namespace ProtoMessageOriginal
         private int _startIdx;
         private int _endIdx;
         private string _protoAsText;
-        
+        private uint _level = 0;
+
         // Key: index of parent message, Value: index of attribute
         private readonly Dictionary<int, int> _attrIndexes = new Dictionary<int, int>();
-        
+
         // Key: Message level, Value: message indexes list
         private readonly Dictionary<uint, List<int>> _msgIndexes = new Dictionary<uint, List<int>>();
+
+        // Contains sub-messages for CURRENT level only
+        private ILookup<string, KeyValuePair<string, ProtoMessage2>> _subMessages;
 
         private void ParseBody()
         {
@@ -36,6 +41,7 @@ namespace ProtoMessageOriginal
                             msgIndexesForLevel = new List<int>();
                             _msgIndexes[currentLevel] = msgIndexesForLevel;
                         }
+
                         msgIndexesForLevel.Add(i);
                         currentLevel++;
                         break;
@@ -45,10 +51,45 @@ namespace ProtoMessageOriginal
                         break;
                 }
             }
+
+            FillCurrentLevelNames();
+        }
+
+        private void FillCurrentLevelNames()
+        {
+            List<int> currLvlIndexes = _msgIndexes[_level];
+            var subMessagesList = new List<KeyValuePair<string, ProtoMessage2>>();
+            foreach (int idx in currLvlIndexes)
+            {
+                subMessagesList.Add(new KeyValuePair<string, ProtoMessage2>(GetMessageName(idx),
+                    new ProtoMessage2(_level + 1, _attrIndexes, _msgIndexes)));
+            }
+
+            _subMessages = subMessagesList.ToLookup(x => x.Key);
+        }
+
+        private string GetMessageName(int idx)
+        {
+            // Look backward for newline or message beginning
+            int start = idx -= 1; // skip whitespace
+            while (start > _startIdx && _protoAsText[start - 1] != ' ' && _protoAsText[start - 1] != '\n')
+            {
+                start--;
+            }
+
+            return _protoAsText.Substring(start, idx - start);
         }
 
         public ProtoMessage2()
         {
+        }
+
+        private ProtoMessage2(uint level, Dictionary<int, int> attrIndexes, Dictionary<uint, List<int>> msgIndexes)
+        {
+            _level = level;
+            _attrIndexes = attrIndexes;
+            _msgIndexes = msgIndexes;
+            // FillCurrentLevelNames();
         }
 
         public override string ToString()
@@ -63,7 +104,7 @@ namespace ProtoMessageOriginal
 
         public ProtoMessage2 GetElement(string name)
         {
-            throw new System.NotImplementedException();
+            throw new System.NotImplementedException(); 
         }
 
         public List<string> GetAttributeList(string name)
