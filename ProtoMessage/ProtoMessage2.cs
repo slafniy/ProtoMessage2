@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ProtoMessageOriginal
 {
@@ -23,19 +24,6 @@ namespace ProtoMessageOriginal
             Index = index;
             Level = level;
             Number = number;
-        }
-
-        public string GetMessageName(string protoAsText)
-        {
-            int idx = Index;
-            // Look backward for newline or message beginning
-            int start = idx -= 1; // skip whitespace
-            while (start > 0 && protoAsText[start - 1] != ' ' && protoAsText[start - 1] != '\n')
-            {
-                start--;
-            }
-
-            return protoAsText.Substring(start, idx - start);
         }
 
         // For debug purposes
@@ -93,10 +81,46 @@ namespace ProtoMessageOriginal
                 // We've found the end of current message
                 if (el.Type == MsgMatrixElementType.MessageEnd && el.Level == _level - 1)
                 {
-                    _subMessages.AddField(_matrix[msgStartPos].GetMessageName(_protoAsText),
-                        new ProtoMessage2(_matrix.GetRange(msgStartPos, i - msgStartPos), _level + 1, _protoAsText));
+                    _subMessages.AddField(GetName(_matrix[msgStartPos].Index),
+                        new ProtoMessage2(_matrix.GetRange(msgStartPos + 1, i - msgStartPos - 1), 
+                            _level + 1, _protoAsText));
+                }
+
+                if (el.Level == _level && el.Type == MsgMatrixElementType.Attribute)
+                {
+                    ParseAttribute(el.Index);
                 }
             }
+        }
+
+        private void ParseAttribute(int index)
+        {
+            index++; // Why? Because GetName() does "-1", and I need this anyway to find a value
+            string name = GetName(index);
+
+            // Now find a value
+            int start = index + 1; // skip whitespace
+            while (index < _protoAsText.Length && _protoAsText[index] != '}' && _protoAsText[index] != '\n')
+            {
+                index++;
+            }
+
+            string value = _protoAsText.Substring(start, index - start);
+
+            _attributes.AddField(name, value); // TODO: need to make it lazy
+        }
+
+        private string GetName(int endIdx)
+        {
+            int idx = endIdx;
+            // Look backward for newline or message beginning
+            int start = idx -= 1; // skip whitespace for message or colon for attribute
+            while (start > 0 && _protoAsText[start - 1] != ' ' && _protoAsText[start - 1] != '\n')
+            {
+                start--;
+            }
+
+            return _protoAsText.Substring(start, idx - start);
         }
 
         public void Parse(string protoAsText)
@@ -126,6 +150,7 @@ namespace ProtoMessageOriginal
                         break;
                 }
             }
+
             ParseCurrentLevel();
         }
 
@@ -145,7 +170,7 @@ namespace ProtoMessageOriginal
 
         public List<string> GetAttributeList(string name)
         {
-            throw new NotImplementedException();
+            return _attributes.ContainsKey(name) ? _attributes[name] : null;
         }
 
         public T GetAttribute<T>(string name) where T : struct
@@ -160,12 +185,12 @@ namespace ProtoMessageOriginal
 
         public string GetAttribute(string name)
         {
-            throw new NotImplementedException();
+            return _attributes.ContainsKey(name) ? _attributes[name].Count == 1 ? _attributes[name][0] : null : null;
         }
 
         public List<string> GetKeys()
         {
-            throw new NotImplementedException();
+            return _subMessages.Keys.ToList();
         }
     }
 }
