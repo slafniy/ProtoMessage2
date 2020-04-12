@@ -25,6 +25,19 @@ namespace ProtoMessageOriginal
             Number = number;
         }
 
+        public string GetMessageName(string protoAsText)
+        {
+            int idx = Index;
+            // Look backward for newline or message beginning
+            int start = idx -= 1; // skip whitespace
+            while (start > 0 && protoAsText[start - 1] != ' ' && protoAsText[start - 1] != '\n')
+            {
+                start--;
+            }
+
+            return protoAsText.Substring(start, idx - start);
+        }
+
         // For debug purposes
         public override string ToString()
         {
@@ -32,87 +45,60 @@ namespace ProtoMessageOriginal
         }
     }
 
-
-    // private string GetMessageName(int idx)
-    // {
-    //     // Look backward for newline or message beginning
-    //     int start = idx -= 1; // skip whitespace
-    //     while (start > _startIdx && _protoAsText[start - 1] != ' ' && _protoAsText[start - 1] != '\n')
-    //     {
-    //         start--;
-    //     }
-    //
-    //     return _protoAsText.Substring(start, idx - start);
-    // }
-
     public class Fields<T> : Dictionary<string, List<T>>
     {
-        public void AddAttribute(string name, T value)
+        public void AddField(string name, T value)
         {
-            if(!TryGetValue(name, out List<T> attrsWithGivenName))
+            if (!TryGetValue(name, out List<T> attrsWithGivenName))
             {
                 attrsWithGivenName = new List<T>();
                 Add(name, attrsWithGivenName);
             }
+
             attrsWithGivenName.Add(value);
         }
     }
-    
+
 
     public class ProtoMessage2 : IProtoMessage<ProtoMessage2>
     {
         private readonly List<MsgMatrixElement> _matrix = new List<MsgMatrixElement>();
         private string _protoAsText;
-        private int _level = 0;
-        
+        private int _level = 1;
+
         private readonly Fields<string> _attributes = new Fields<string>();
         private readonly Fields<ProtoMessage2> _subMessages = new Fields<ProtoMessage2>();
 
-        private ProtoMessage2(List<MsgMatrixElement> matrix, int level)
+        private ProtoMessage2(List<MsgMatrixElement> matrix, int level, string protoAsText)
         {
             _matrix = matrix;
             _level = level;
+            _protoAsText = protoAsText;
+            ParseCurrentLevel();
         }
 
-        public ProtoMessage2()
+        private void ParseCurrentLevel()
         {
+            int msgStartPos = 0;
+            int msgStartNumber = 0;
+            for (int i = 0; i < _matrix.Count; i++)
+            {
+                MsgMatrixElement el = _matrix[i];
+                if (el.Type == MsgMatrixElementType.MessageStart && el.Level == _level)
+                {
+                    msgStartPos = i;
+                    msgStartNumber = el.Number;
+                }
+
+                // We've found the end of current message
+                if (el.Type == MsgMatrixElementType.MessageEnd && el.Level == _level - 1)
+                {
+                    _subMessages.AddField(_matrix[msgStartPos].GetMessageName(_protoAsText),
+                        new ProtoMessage2(_matrix.GetRange(msgStartPos, i - msgStartPos), _level + 1, _protoAsText));
+                }
+            }
         }
 
-        public List<ProtoMessage2> GetElementList(string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        public ProtoMessage2 GetElement(string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        public List<string> GetAttributeList(string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        public T GetAttribute<T>(string name) where T : struct
-        {
-            throw new NotImplementedException();
-        }
-
-        public T? GetAttributeOrNull<T>(string name) where T : struct
-        {
-            throw new NotImplementedException();
-        }
-
-        public string GetAttribute(string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        public List<string> GetKeys()
-        {
-            throw new NotImplementedException();
-        }
-        
         public void Parse(string protoAsText)
         {
             _protoAsText = protoAsText;
@@ -140,6 +126,46 @@ namespace ProtoMessageOriginal
                         break;
                 }
             }
+            ParseCurrentLevel();
+        }
+
+        public ProtoMessage2()
+        {
+        }
+
+        public List<ProtoMessage2> GetElementList(string name)
+        {
+            return _subMessages.ContainsKey(name) ? _subMessages[name] : null;
+        }
+
+        public ProtoMessage2 GetElement(string name)
+        {
+            return _subMessages.ContainsKey(name) ? _subMessages[name].Count == 1 ? _subMessages[name][0] : null : null;
+        }
+
+        public List<string> GetAttributeList(string name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public T GetAttribute<T>(string name) where T : struct
+        {
+            throw new NotImplementedException();
+        }
+
+        public T? GetAttributeOrNull<T>(string name) where T : struct
+        {
+            throw new NotImplementedException();
+        }
+
+        public string GetAttribute(string name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public List<string> GetKeys()
+        {
+            throw new NotImplementedException();
         }
     }
 }
