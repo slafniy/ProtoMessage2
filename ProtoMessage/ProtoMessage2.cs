@@ -46,14 +46,13 @@ namespace ProtoMessageOriginal
         }
     }
 
-
     public class ProtoMessage2 : IProtoMessage<ProtoMessage2>
     {
         private readonly List<MsgMatrixElement> _matrix = new List<MsgMatrixElement>();
         private string _protoAsText;
         private readonly int _level = 1;
         
-        private readonly Fields<string> _attributes = new Fields<string>();
+        private readonly Fields<Attribute> _attributes = new Fields<Attribute>();
         private readonly Fields<ProtoMessage2> _subMessages = new Fields<ProtoMessage2>();
 
         private ProtoMessage2(List<MsgMatrixElement> matrix, int level, string protoAsText)
@@ -90,23 +89,42 @@ namespace ProtoMessageOriginal
             }
         }
 
+        private class Attribute
+        {
+            private readonly int _index;
+            private readonly string _protoAsText;
+            private string _value = null;
+
+            public string Value => _value ?? ParseAttributeValue();
+
+            public Attribute(int idx, string protoAsText)
+            {
+                _index = idx;
+                _protoAsText = protoAsText;
+            }
+
+            private string ParseAttributeValue()
+            {
+                int index = _index;
+                int start = index + 1; // skip whitespace
+                while (index < _protoAsText.Length && _protoAsText[index] != '}' && _protoAsText[index] != '\n')
+                {
+                    index++;
+                }
+            
+                _value = _protoAsText.Substring(start, index - start).Trim('"');
+                return _value;
+            }
+        }
+        
         private void ParseAttribute(int index)
         {
             index++; // Why? Because GetName() does "-1", and I need this anyway to find a value
             string name = GetName(index);
 
-            // Now find a value
-            int start = index + 1; // skip whitespace
-            while (index < _protoAsText.Length && _protoAsText[index] != '}' && _protoAsText[index] != '\n')
-            {
-                index++;
-            }
-            
-            string value = _protoAsText.Substring(start, index - start).Trim('"');
-
-            _attributes.AddField(name, value); // TODO: need to make it lazy
+            _attributes.AddField(name, new Attribute(index, _protoAsText));
         }
-
+        
         private string GetName(int endIdx)
         {
             int idx = endIdx;
@@ -163,7 +181,7 @@ namespace ProtoMessageOriginal
 
         public List<string> GetAttributeList(string name)
         {
-            return _attributes.ContainsKey(name) ? _attributes[name] : null;
+            return !_attributes.ContainsKey(name) ? null : _attributes[name].Select(attr => attr.Value).ToList();
         }
 
         public T GetAttribute<T>(string name) where T : struct
@@ -187,7 +205,7 @@ namespace ProtoMessageOriginal
         {
             // TODO: Yes, it really should work in this way! I don't like this logic. Same for GetElement
             // TODO: I'd return null in case of repeated message
-            return _attributes.ContainsKey(name) && _attributes[name].Count > 0 ? _attributes[name][0] : null;
+            return _attributes.ContainsKey(name) && _attributes[name].Count > 0 ? _attributes[name][0].Value : null;
         }
 
         public List<string> GetKeys()
