@@ -1,143 +1,145 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace ProtoMessageOriginal
 {
+    public enum MsgMatrixElementType
+    {
+        MessageStart = '{',
+        MessageEnd = '}',
+        Attribute = ':'
+    }
+
+    public struct MsgMatrixElement
+    {
+        public readonly MsgMatrixElementType Type;
+        public readonly int Index; // global "position" in text, '{' for message and ':' for attribute
+        public readonly int Level; // increases on each '{' decreases on each '}'
+        public readonly int Number; // increases on each '{', NEVER decreases
+
+        public MsgMatrixElement(MsgMatrixElementType type, int index, int level, int number)
+        {
+            Type = type;
+            Index = index;
+            Level = level;
+            Number = number;
+        }
+
+        // For debug purposes
+        public override string ToString()
+        {
+            return $"Index: {Index} Level: {Level} Number: {Number} Type: {Type.ToString()}";
+        }
+    }
+
+
+    // private string GetMessageName(int idx)
+    // {
+    //     // Look backward for newline or message beginning
+    //     int start = idx -= 1; // skip whitespace
+    //     while (start > _startIdx && _protoAsText[start - 1] != ' ' && _protoAsText[start - 1] != '\n')
+    //     {
+    //         start--;
+    //     }
+    //
+    //     return _protoAsText.Substring(start, idx - start);
+    // }
+
+    public class Fields<T> : Dictionary<string, List<T>>
+    {
+        public void AddAttribute(string name, T value)
+        {
+            if(!TryGetValue(name, out List<T> attrsWithGivenName))
+            {
+                attrsWithGivenName = new List<T>();
+                Add(name, attrsWithGivenName);
+            }
+            attrsWithGivenName.Add(value);
+        }
+    }
+    
+
     public class ProtoMessage2 : IProtoMessage<ProtoMessage2>
     {
-        private int _startIdx;
-        private int _endIdx;
+        private readonly List<MsgMatrixElement> _matrix = new List<MsgMatrixElement>();
         private string _protoAsText;
-        private uint _level = 0;
+        private int _level = 0;
+        
+        private readonly Fields<string> _attributes = new Fields<string>();
+        private readonly Fields<ProtoMessage2> _subMessages = new Fields<ProtoMessage2>();
 
-        // Key: index of parent message, Value: index of attribute
-        private readonly Dictionary<int, int> _attrIndexes = new Dictionary<int, int>();
-
-        // Key: Message level, Value: message indexes list
-        private readonly Dictionary<uint, List<int>> _msgIndexes = new Dictionary<uint, List<int>>();
-
-        // Contains sub-messages for CURRENT level only
-        private ILookup<string, KeyValuePair<string, ProtoMessage2>> _subMessages;
-
-        private void ParseBody()
+        private ProtoMessage2(List<MsgMatrixElement> matrix, int level)
         {
-            var parentIndexes = new Stack<int>();
-            parentIndexes.Push(-1); // -1 means no parent
-            uint currentLevel = 0;
-            for (int i = 0; i <= _endIdx; i++)
-            {
-                char c = _protoAsText[i];
-                switch (c)
-                {
-                    case ':':
-                        _attrIndexes[parentIndexes.Peek()] = i;
-                        break;
-                    case '{':
-                        parentIndexes.Push(i);
-                        if (!_msgIndexes.TryGetValue(currentLevel, out List<int> msgIndexesForLevel))
-                        {
-                            msgIndexesForLevel = new List<int>();
-                            _msgIndexes[currentLevel] = msgIndexesForLevel;
-                        }
-
-                        msgIndexesForLevel.Add(i);
-                        currentLevel++;
-                        break;
-                    case '}':
-                        parentIndexes.Pop();
-                        currentLevel--;
-                        break;
-                }
-            }
-
-            FillCurrentLevelNames();
-        }
-
-        private void FillCurrentLevelNames()
-        {
-            List<int> currLvlIndexes = _msgIndexes[_level];
-            var subMessagesList = new List<KeyValuePair<string, ProtoMessage2>>();
-            foreach (int idx in currLvlIndexes)
-            {
-                subMessagesList.Add(new KeyValuePair<string, ProtoMessage2>(GetMessageName(idx),
-                    new ProtoMessage2(_level + 1, _attrIndexes, _msgIndexes)));
-            }
-
-            _subMessages = subMessagesList.ToLookup(x => x.Key);
-        }
-
-        private string GetMessageName(int idx)
-        {
-            // Look backward for newline or message beginning
-            int start = idx -= 1; // skip whitespace
-            while (start > _startIdx && _protoAsText[start - 1] != ' ' && _protoAsText[start - 1] != '\n')
-            {
-                start--;
-            }
-
-            return _protoAsText.Substring(start, idx - start);
+            _matrix = matrix;
+            _level = level;
         }
 
         public ProtoMessage2()
         {
         }
 
-        private ProtoMessage2(uint level, Dictionary<int, int> attrIndexes, Dictionary<uint, List<int>> msgIndexes)
-        {
-            _level = level;
-            _attrIndexes = attrIndexes;
-            _msgIndexes = msgIndexes;
-            // FillCurrentLevelNames();
-        }
-
-        public override string ToString()
-        {
-            return _protoAsText.Substring(_startIdx, _endIdx - _startIdx);
-        }
-
         public List<ProtoMessage2> GetElementList(string name)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ProtoMessage2 GetElement(string name)
         {
-            throw new System.NotImplementedException(); 
+            throw new NotImplementedException();
         }
 
         public List<string> GetAttributeList(string name)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public T GetAttribute<T>(string name) where T : struct
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public T? GetAttributeOrNull<T>(string name) where T : struct
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public string GetAttribute(string name)
         {
-            throw new System.NotImplementedException();
-        }
-
-        public void Parse(string text)
-        {
-            _protoAsText = text;
-            _startIdx = 0;
-            _endIdx = text.Length - 1;
-            ParseBody();
+            throw new NotImplementedException();
         }
 
         public List<string> GetKeys()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
+        }
+        
+        public void Parse(string protoAsText)
+        {
+            _protoAsText = protoAsText;
+            int currentLevel = 0;
+            int currentNumber = 0;
+            for (int i = 0; i < _protoAsText.Length; i++)
+            {
+                char c = _protoAsText[i];
+                switch (c)
+                {
+                    case ':':
+                        _matrix.Add(
+                            new MsgMatrixElement(MsgMatrixElementType.Attribute, i, currentLevel, currentNumber));
+                        break;
+                    case '{':
+                        currentNumber++;
+                        currentLevel++;
+                        _matrix.Add(new MsgMatrixElement(MsgMatrixElementType.MessageStart, i, currentLevel,
+                            currentNumber));
+                        break;
+                    case '}':
+                        currentLevel--;
+                        _matrix.Add(new MsgMatrixElement(MsgMatrixElementType.MessageEnd, i, currentLevel,
+                            currentNumber));
+                        break;
+                }
+            }
         }
     }
 }
