@@ -49,6 +49,7 @@ namespace ProtoMessageUT
             Assert.IsNotNull(pm);
 
             Assert.AreEqual(new List<T>(), pm.GetElementList(NotExistingMessage));
+            Assert.AreEqual(new List<string>(), pm.GetAttributeList(NotExistingMessage));
 
             Assert.AreEqual(SomeSingleNumberVal, pm.GetAttribute(SomeSingleNumber));
             Assert.AreEqual(SomeTextVal, pm.GetAttribute(SomeText));

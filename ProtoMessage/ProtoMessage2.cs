@@ -15,8 +15,8 @@ namespace ProtoMessageOriginal
     public struct MsgMatrixElement
     {
         public readonly MsgMatrixElementType Type;
-        public readonly int Index; // global "position" in text, '{' for message and ':' for attribute
-        public readonly int Level; // increases on each '{' decreases on each '}'
+        public readonly int Index;  // global "position" in text, '{' for message and ':' for attribute
+        public readonly int Level;  // increases on each '{' decreases on each '}'
 
         public MsgMatrixElement(MsgMatrixElementType type, int index, int level)
         {
@@ -61,7 +61,6 @@ namespace ProtoMessageOriginal
             _matrix = matrix;
             _level = level;
             _protoAsText = protoAsText;
-            // ParseCurrentLevel();
         }
 
         private void ParseCurrentLevel()
@@ -127,7 +126,7 @@ namespace ProtoMessageOriginal
         
         private void ParseAttribute(int index)
         {
-            index++; // Why? Because GetName() does "-1", and I need this anyway to find a value
+            index++;  // Why? Because GetName() does "-1", and I need this anyway to find a value
             string name = GetName(index);
 
             _attributes.AddField(name, new Attribute(index, _protoAsText));
@@ -137,7 +136,7 @@ namespace ProtoMessageOriginal
         {
             int idx = endIdx;
             // Look backward for newline or message beginning
-            int start = idx -= 1; // skip whitespace for message or colon for attribute
+            int start = idx -= 1;  // skip whitespace for message or colon for attribute
             while (start > 0 && _protoAsText[start - 1] != ' ' && _protoAsText[start - 1] != '\n')
             {
                 start--;
@@ -169,8 +168,6 @@ namespace ProtoMessageOriginal
                         break;
                 }
             }
-
-            // ParseCurrentLevel();
         }
 
         public ProtoMessage2()
@@ -192,7 +189,7 @@ namespace ProtoMessageOriginal
         public List<string> GetAttributeList(string name)
         {
             ParseCurrentLevel();
-            return !_attributes.ContainsKey(name) ? null : _attributes[name].Select(attr => attr.Value).ToList();
+            return !_attributes.ContainsKey(name) ? new List<string>() : _attributes[name].Select(attr => attr.Value).ToList();
         }
 
         public T GetAttribute<T>(string name) where T : struct
