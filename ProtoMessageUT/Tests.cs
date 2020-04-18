@@ -58,6 +58,10 @@ namespace ProtoMessageUT
 
             T rootMsg = pm.GetElement(RootMessage);
             Assert.IsNotNull(rootMsg);
+            Assert.Contains(RootMessage, pm.GetKeys());
+            Assert.Contains(RootMessage2, pm.GetKeys());
+            Assert.AreEqual(4, pm.GetKeys().Count);
+            Assert.AreEqual(2, pm.GetKeys().Select(x => x).Count(x => x == RepeatedSubmessage));
             
             Assert.AreEqual(SomeSingleNumber.Item2, rootMsg.GetAttribute(SomeSingleNumber.Item1));
             Assert.AreEqual(SomeText.Item2, rootMsg.GetAttribute(SomeText.Item1));
@@ -72,10 +76,6 @@ namespace ProtoMessageUT
                 Assert.AreEqual(SecondInt.Item2, attrList[1]);
             }
             
-            Assert.Contains(RootMessage, pm.GetKeys());
-            Assert.Contains(RootMessage2, pm.GetKeys());
-            Assert.AreEqual(4, pm.GetKeys().Count);
-            Assert.AreEqual(2, pm.GetKeys().Select(x => x).Count(x => x == RepeatedSubmessage));
             Assert.AreEqual(2, rootMsg.GetKeys().Select(x => x).Count(x => x == RepeatedSubmessage));
             Assert.AreEqual(2, rootMsg.GetKeys().Count);
 

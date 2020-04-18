@@ -11,24 +11,46 @@ namespace ProtoMessageBench
 {
     internal static class Bench
     {
-        private static void DoBench<T>(uint iterationsLimit, string protoAsText) where T : IProtoMessage<T>, new()
+
+        private static void JustParse<T>(uint iterations, string protoAsText) where T : IProtoMessage<T>, new()
         {
             var stopwatch = new Stopwatch();
+            Console.Write($"{iterations} iterations JustParse for {typeof(T)} - ");
             stopwatch.Start();
-            for (uint iteration = 0; iteration <= iterationsLimit; iteration++)
+            
+            for (uint i = 0; i < iterations; i++)
             {
-                var pm = new T();
-                pm.Parse(protoAsText);
+                var protoMessage = new T();
+                protoMessage.Parse(protoAsText);
+            }
+            
+            stopwatch.Stop();
+            Console.WriteLine($"finished in {stopwatch.Elapsed.TotalSeconds} sec");
+        }
+        
+        private static void ReadAll<T>(uint iterations, string protoAsText) where T : IProtoMessage<T>, new()
+        {
+            var stopwatch = new Stopwatch();
+            Console.Write($"{iterations} iterations JustParse for {typeof(T)} - ");
+            stopwatch.Start();
 
-                var topLvlKeys = pm.GetKeys();  // is it supposed for this, right?
+            for (uint i = 0; i < iterations; i++)
+            {
+                var protoMessage = new T();
+                protoMessage.Parse(protoAsText);
+
+                List<string> keys = protoMessage.GetKeys();
                 
-                // try to parse some data from 3 lvl message
-                var mainMsg = pm.GetElementList("type1_message_level_zero");
+                // made a check once per 1000 iterations just to make sure everything is correct
+                if (i % 1000 != 0)
+                {
+                    continue;
+                }
+                Assert.AreEqual(13, keys.Count);
             }
 
             stopwatch.Stop();
-            Console.WriteLine(
-                $"{iterationsLimit} iterations finished for {typeof(T)} in {stopwatch.Elapsed.TotalSeconds} sec");
+            Console.WriteLine($"finished in {stopwatch.Elapsed.TotalSeconds} sec");
         }
 
         public static void Main(string[] args)
@@ -37,8 +59,11 @@ namespace ProtoMessageBench
             var dataReader = new StreamReader(dataStream ?? throw new Exception("Cannot read data"));
             string testData = dataReader.ReadToEnd();
 
-            DoBench<ProtoMessage>(uint.Parse(args[0]), testData);
-            DoBench<ProtoMessage2>(uint.Parse(args[0]), testData);
+            JustParse<ProtoMessage>(uint.Parse(args[0]), testData);
+            JustParse<ProtoMessage2>(uint.Parse(args[0]), testData);
+            
+            ReadAll<ProtoMessage>(uint.Parse(args[0]), testData);
+            ReadAll<ProtoMessage2>(uint.Parse(args[0]), testData);
         }
     }
 }
