@@ -54,7 +54,22 @@ namespace ProtoMessageOriginal
         private bool _isParsed;
         
         private readonly Fields<Attribute> _attributes = new Fields<Attribute>();
-        private readonly Fields<ProtoMessage2> _subMessages = new Fields<ProtoMessage2>();
+        private Fields<ProtoMessage2> _subMessages;
+
+        private Fields<ProtoMessage2> SubMessages
+        {
+            get
+            {
+                if (_subMessages != null)
+                {
+                    return _subMessages;
+                }
+
+                _subMessages = new Fields<ProtoMessage2>();
+                ParseCurrentLevel();
+                return _subMessages;
+            }
+        }
 
         private ProtoMessage2(List<MsgMatrixElement> matrix, int level, string protoAsText)
         {
@@ -84,7 +99,7 @@ namespace ProtoMessageOriginal
                 // We've found the end of current message
                 if (el.Type == MsgMatrixElementType.MessageEnd && el.Level == _level)
                 {
-                    _subMessages.AddField(GetName(_matrix[msgStartPos].Index),
+                    SubMessages.AddField(GetName(_matrix[msgStartPos].Index),
                         new ProtoMessage2(_matrix.GetRange(msgStartPos + 1, i - msgStartPos - 1), 
                             _level + 1, _protoAsText));
                 }
@@ -176,14 +191,12 @@ namespace ProtoMessageOriginal
 
         public List<ProtoMessage2> GetElementList(string name)
         {
-            ParseCurrentLevel();
-            return _subMessages.ContainsKey(name) ? _subMessages[name] : new List<ProtoMessage2>();
+            return SubMessages.ContainsKey(name) ? SubMessages[name] : new List<ProtoMessage2>();
         }
 
         public ProtoMessage2 GetElement(string name)
         {
-            ParseCurrentLevel();
-            return _subMessages.ContainsKey(name) && _subMessages[name].Count > 0 ? _subMessages[name][0] : null;
+            return SubMessages.ContainsKey(name) && SubMessages[name].Count > 0 ? SubMessages[name][0] : null;
         }
 
         public List<string> GetAttributeList(string name)
@@ -230,12 +243,12 @@ namespace ProtoMessageOriginal
                     foreach (ProtoMessage2 m in msg.Value)
                     {
                         res.Add(msg.Key);
-                        GetSubMessages(m._subMessages);
+                        GetSubMessages(m.SubMessages);
                     }
                 }
             }
             
-            GetSubMessages(_subMessages);
+            GetSubMessages(SubMessages);
             
             return res;
         }
