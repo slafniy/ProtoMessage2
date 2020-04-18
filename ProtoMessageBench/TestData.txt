@@ -31,7 +31,7 @@
   message_level_one {
     message_level_two {
       useless_id: 254
-      long_string_attribute: "2387o497ghl233j rl dj nf we fjp w38f pw384!@#$ @#$% @!~@!#$@Ss42``42344 2 34234p909k09fjd"
+      long_string_attribute: "2387o497ghl233j rl dj nf we "f"jp w38f p!@#$ @#$% @!~@!#$@Ss42``42344 2 34234p909k09fjd"
       double_attribute: 0.25
       integer_value: 103
       description: "this is test message"

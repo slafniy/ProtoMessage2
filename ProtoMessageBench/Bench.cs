@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -44,21 +43,63 @@ namespace ProtoMessageBench
                 T lvlOneMsg = lvlZeroMsg.GetElement("message_level_one");
                 T lvlTwoMsg = lvlOneMsg.GetElement("message_level_two");
                 List<T> lvlThreeMessages = lvlTwoMsg.GetElementList("message_level_three");
+                List<string> zeroIds = lvlZeroMsg.GetAttributeList("id");
+                string uselessId = lvlTwoMsg.GetAttribute("useless_id");
+                string longString = lvlTwoMsg.GetAttribute("long_string_attribute");
+                lvlTwoMsg.GetAttribute("double_attribute");
+                lvlTwoMsg.GetAttribute("integer_value");
+                lvlTwoMsg.GetAttribute("description");
+                lvlTwoMsg.GetAttribute("why");
+                lvlTwoMsg.GetAttribute("another_double");
+                lvlTwoMsg.GetAttribute("and_one_more_string");
+                lvlTwoMsg.GetAttribute("its_boolean");
+                lvlTwoMsg.GetAttributeList("we_need_a_repeated_string_too");
+                lvlTwoMsg.GetAttribute("and_here_too");
+                lvlTwoMsg.GetAttribute("help_me");
+                lvlTwoMsg.GetAttribute("i_do_not_know");
+                lvlTwoMsg.GetAttribute("what_to");
+                lvlTwoMsg.GetAttribute("write_here");
+                string lvlOneBool = lvlOneMsg.GetAttribute("and_boolean_in_the_end");
+                string? needToWriteAttr = null;
+                
+                foreach (T msg in lvlThreeMessages)
+                {
+                    needToWriteAttr = msg.GetAttribute("need_to_write_something_here");
+                    msg.GetAttribute("why_all_zeros");
+                }
+
+                lvlTwoMsg.GetAttribute("master_yoda_said");
+                T uniqueLvl3 = lvlTwoMsg.GetElement("message_level_three_unique");
+                string uniqueLvl2Attr = uniqueLvl3.GetAttribute("need_to_write_something_here");
+                uniqueLvl3.GetAttribute("why_all_zeros");
+                T uniqueOtherL3 = lvlTwoMsg.GetElement("message_level_three_but_unique");
+                string key = uniqueOtherL3.GetAttribute("key");
+                string text = uniqueOtherL3.GetAttribute("text");
                 
                 // made a check once per 1000 iterations just to make sure everything is correct
                 if (i % 1000 != 0)
                 {
                     continue;
                 }
+                
                 Assert.AreEqual(13, keys.Count);
                 Assert.IsNotEmpty(lvlThreeMessages);
+                Assert.AreEqual(28, zeroIds.Count);
+                Assert.AreEqual("666", zeroIds[20]);
+                Assert.AreEqual("254", uselessId);
+                Assert.AreEqual("2387o497ghl233j rl dj nf we \"f\"jp w38f p!@#$ @#$% " +
+                                "@!~@!#$@Ss42``42344 2 34234p909k09fjd", longString);
+                Assert.AreEqual("false", lvlOneBool);
+                Assert.AreEqual("1", needToWriteAttr);
+                Assert.AreEqual("1234554321", key);
+                Assert.AreEqual("ha ha", text);
             }
 
             stopwatch.Stop();
-            Thread.Sleep(500);  // TODO: fix. Console in Rider goes mad without this
+            Thread.Sleep(100);  // TODO: fix. Console in Rider goes mad without this
             Console.WriteLine($"{iterations} iterations ReadAll for {typeof(T)} " +
                               $"finished in {stopwatch.Elapsed.TotalSeconds} sec");
-            Thread.Sleep(500);
+            Thread.Sleep(100);
         }
 
         public static void Main(string[] args)
