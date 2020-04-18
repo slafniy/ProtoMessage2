@@ -74,6 +74,7 @@ namespace ProtoMessageUT
             
             Assert.Contains(RootMessage, pm.GetKeys());
             Assert.Contains(RootMessage2, pm.GetKeys());
+            Assert.AreEqual(4, pm.GetKeys().Count);
             Assert.AreEqual(2, pm.GetKeys().Select(x => x).Count(x => x == RepeatedSubmessage));
             Assert.AreEqual(2, rootMsg.GetKeys().Select(x => x).Count(x => x == RepeatedSubmessage));
             Assert.AreEqual(2, rootMsg.GetKeys().Count);

@@ -218,10 +218,26 @@ namespace ProtoMessageOriginal
             return _attributes.ContainsKey(name) && _attributes[name].Count > 0 ? _attributes[name][0].Value : null;
         }
 
-        public List<string> GetKeys()  // TODO: it should return data from sub-messages too!
+        public List<string> GetKeys()  // TODO: check usage. I doubt it really should return a LIST of ALL sub messages 
         {
             ParseCurrentLevel();
-            return (from kv in _subMessages from _ in kv.Value select kv.Key).ToList();
+            var res = new List<string>();
+
+            void GetSubMessages(Fields<ProtoMessage2> messages)
+            {
+                foreach (KeyValuePair<string, List<ProtoMessage2>> msg in messages)
+                {
+                    foreach (ProtoMessage2 m in msg.Value)
+                    {
+                        res.Add(msg.Key);
+                        GetSubMessages(m._subMessages);
+                    }
+                }
+            }
+            
+            GetSubMessages(_subMessages);
+            
+            return res;
         }
     }
 }

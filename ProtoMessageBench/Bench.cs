@@ -37,7 +37,7 @@ namespace ProtoMessageBench
             var dataReader = new StreamReader(dataStream ?? throw new Exception("Cannot read data"));
             string testData = dataReader.ReadToEnd();
 
-            // DoBench<ProtoMessage>(uint.Parse(args[0]), testData);
+            DoBench<ProtoMessage>(uint.Parse(args[0]), testData);
             DoBench<ProtoMessage2>(uint.Parse(args[0]), testData);
         }
     }
