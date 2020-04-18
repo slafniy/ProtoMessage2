@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 using ProtoMessageOriginal;
 using NUnit.Framework;
 
@@ -15,7 +16,6 @@ namespace ProtoMessageBench
         private static void JustParse<T>(uint iterations, string protoAsText) where T : IProtoMessage<T>, new()
         {
             var stopwatch = new Stopwatch();
-            Console.Write($"{iterations} iterations JustParse for {typeof(T)} - ");
             stopwatch.Start();
             
             for (uint i = 0; i < iterations; i++)
@@ -25,13 +25,13 @@ namespace ProtoMessageBench
             }
             
             stopwatch.Stop();
-            Console.WriteLine($"finished in {stopwatch.Elapsed.TotalSeconds} sec");
+            Console.WriteLine($"{iterations} iterations JustParse for {typeof(T)} " +
+                              $"finished in {stopwatch.Elapsed.TotalSeconds} sec");
         }
         
         private static void ReadAll<T>(uint iterations, string protoAsText) where T : IProtoMessage<T>, new()
         {
             var stopwatch = new Stopwatch();
-            Console.Write($"{iterations} iterations JustParse for {typeof(T)} - ");
             stopwatch.Start();
 
             for (uint i = 0; i < iterations; i++)
@@ -40,6 +40,10 @@ namespace ProtoMessageBench
                 protoMessage.Parse(protoAsText);
 
                 List<string> keys = protoMessage.GetKeys();
+                T lvlZeroMsg = protoMessage.GetElement("type1_message_level_zero");
+                T lvlOneMsg = lvlZeroMsg.GetElement("message_level_one");
+                T lvlTwoMsg = lvlOneMsg.GetElement("message_level_two");
+                List<T> lvlThreeMessages = lvlTwoMsg.GetElementList("message_level_three");
                 
                 // made a check once per 1000 iterations just to make sure everything is correct
                 if (i % 1000 != 0)
@@ -47,10 +51,14 @@ namespace ProtoMessageBench
                     continue;
                 }
                 Assert.AreEqual(13, keys.Count);
+                Assert.IsNotEmpty(lvlThreeMessages);
             }
 
             stopwatch.Stop();
-            Console.WriteLine($"finished in {stopwatch.Elapsed.TotalSeconds} sec");
+            Thread.Sleep(500);  // TODO: fix. Console in Rider goes mad without this
+            Console.WriteLine($"{iterations} iterations ReadAll for {typeof(T)} " +
+                              $"finished in {stopwatch.Elapsed.TotalSeconds} sec");
+            Thread.Sleep(500);
         }
 
         public static void Main(string[] args)

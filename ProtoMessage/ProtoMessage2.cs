@@ -15,8 +15,8 @@ namespace ProtoMessageOriginal
     public struct MsgMatrixElement
     {
         public readonly MsgMatrixElementType Type;
-        public readonly int Index;  // global "position" in text, '{' for message and ':' for attribute
-        public readonly int Level;  // increases on each '{' decreases on each '}'
+        public readonly int Index; // global "position" in text, '{' for message and ':' for attribute
+        public readonly int Level; // increases on each '{' decreases on each '}'
 
         public MsgMatrixElement(MsgMatrixElementType type, int index, int level)
         {
@@ -52,7 +52,7 @@ namespace ProtoMessageOriginal
         private string _protoAsText;
         private readonly int _level = 1;
         private bool _isParsed;
-        
+
         private readonly Fields<Attribute> _attributes = new Fields<Attribute>();
         private Fields<ProtoMessage2> _subMessages;
 
@@ -86,7 +86,7 @@ namespace ProtoMessageOriginal
             }
 
             _isParsed = true;
-            
+
             int msgStartPos = 0;
             for (int i = 0; i < _matrix.Count; i++)
             {
@@ -100,7 +100,7 @@ namespace ProtoMessageOriginal
                 if (el.Type == MsgMatrixElementType.MessageEnd && el.Level == _level)
                 {
                     SubMessages.AddField(GetName(_matrix[msgStartPos].Index),
-                        new ProtoMessage2(_matrix.GetRange(msgStartPos + 1, i - msgStartPos - 1), 
+                        new ProtoMessage2(_matrix.GetRange(msgStartPos + 1, i - msgStartPos - 1),
                             _level + 1, _protoAsText));
                 }
 
@@ -133,25 +133,25 @@ namespace ProtoMessageOriginal
                 {
                     index++;
                 }
-            
+
                 _value = _protoAsText.Substring(start, index - start).Trim('"');
                 return _value;
             }
         }
-        
+
         private void ParseAttribute(int index)
         {
-            index++;  // Why? Because GetName() does "-1", and I need this anyway to find a value
+            index++; // Why? Because GetName() does "-1", and I need this anyway to find a value
             string name = GetName(index);
 
             _attributes.AddField(name, new Attribute(index, _protoAsText));
         }
-        
+
         private string GetName(int endIdx)
         {
             int idx = endIdx;
             // Look backward for newline or message beginning
-            int start = idx -= 1;  // skip whitespace for message or colon for attribute
+            int start = idx -= 1; // skip whitespace for message or colon for attribute
             while (start > 0 && _protoAsText[start - 1] != ' ' && _protoAsText[start - 1] != '\n')
             {
                 start--;
@@ -202,7 +202,9 @@ namespace ProtoMessageOriginal
         public List<string> GetAttributeList(string name)
         {
             ParseCurrentLevel();
-            return !_attributes.ContainsKey(name) ? new List<string>() : _attributes[name].Select(attr => attr.Value).ToList();
+            return !_attributes.ContainsKey(name)
+                ? new List<string>()
+                : _attributes[name].Select(attr => attr.Value).ToList();
         }
 
         public T GetAttribute<T>(string name) where T : struct
@@ -215,11 +217,6 @@ namespace ProtoMessageOriginal
         public T? GetAttributeOrNull<T>(string name) where T : struct
         {
             string attr = GetAttribute(name);
-            if (attr == null)
-            {
-                return null;
-            }
-
             return (T) Convert.ChangeType(attr, typeof(T), CultureInfo.InvariantCulture);
         }
 
@@ -231,7 +228,7 @@ namespace ProtoMessageOriginal
             return _attributes.ContainsKey(name) && _attributes[name].Count > 0 ? _attributes[name][0].Value : null;
         }
 
-        public List<string> GetKeys()  // TODO: check usage. I doubt it really should return a LIST of ALL sub messages 
+        public List<string> GetKeys() // TODO: check usage. I doubt it really should return a LIST of ALL sub messages 
         {
             ParseCurrentLevel();
             var res = new List<string>();
@@ -247,9 +244,9 @@ namespace ProtoMessageOriginal
                     }
                 }
             }
-            
+
             GetSubMessages(SubMessages);
-            
+
             return res;
         }
     }
