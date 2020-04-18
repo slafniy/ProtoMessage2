@@ -230,23 +230,16 @@ namespace ProtoMessageOriginal
 
         public List<string> GetKeys() // TODO: check usage. I doubt it really should return a LIST of ALL sub messages 
         {
-            ParseCurrentLevel();
             var res = new List<string>();
 
-            void GetSubMessages(Fields<ProtoMessage2> messages)
+            foreach (MsgMatrixElement el in _matrix)
             {
-                foreach (KeyValuePair<string, List<ProtoMessage2>> msg in messages)
+                if (el.Type == MsgMatrixElementType.MessageStart)
                 {
-                    foreach (ProtoMessage2 m in msg.Value)
-                    {
-                        res.Add(msg.Key);
-                        GetSubMessages(m.SubMessages);
-                    }
+                    res.Add(GetName(el.Index));
                 }
             }
-
-            GetSubMessages(SubMessages);
-
+            
             return res;
         }
     }

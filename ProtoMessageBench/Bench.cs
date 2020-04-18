@@ -70,7 +70,7 @@ namespace ProtoMessageBench
 
                 lvlTwoMsg.GetAttribute("master_yoda_said");
                 T uniqueLvl3 = lvlTwoMsg.GetElement("message_level_three_unique");
-                string uniqueLvl2Attr = uniqueLvl3.GetAttribute("need_to_write_something_here");
+                uniqueLvl3.GetAttribute("need_to_write_something_here");
                 uniqueLvl3.GetAttribute("why_all_zeros");
                 T uniqueOtherL3 = lvlTwoMsg.GetElement("message_level_three_but_unique");
                 string key = uniqueOtherL3.GetAttribute("key");
