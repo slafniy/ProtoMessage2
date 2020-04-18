@@ -1,0 +1,97 @@
+﻿type1_message_level_zero {
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  id: 666
+  top_level_int: 0
+  message_level_one {
+    message_level_two {
+      useless_id: 254
+      long_string_attribute: "2387o497ghl233j rl dj nf we fjp w38f pw384!@#$ @#$% @!~@!#$@Ss42``42344 2 34234p909k09fjd"
+      double_attribute: 0.25
+      integer_value: 103
+      description: "this is test message"
+      why: "BECAUSE!"
+      another_double: 0.25
+      and_one_more_string: "Very important info here!"
+      its_boolean: false
+      we_need_a_repeated_string_too: "ENGLISH MF DO U SPEAK IT???"
+      we_need_a_repeated_string_too: "ENGLISH MF DO U SPEAK IT???"
+      we_need_a_repeated_string_too: "ENGLISH MF DO U SPEAK IT???"
+      we_need_a_repeated_string_too: "ENGLISH MF DO U SPEAK IT???"
+      we_need_a_repeated_string_too: "ENGLISH MF DO U SPEAK IT???"
+      we_need_a_repeated_string_too: "ENGLISH MF DO U SPEAK IT???"
+      message_level_three {
+        need_to_write_something_here: 1
+        why_all_zeros: 0
+      }
+      message_level_three {
+        need_to_write_something_here: 1
+        why_all_zeros: 0
+      }
+      message_level_three {
+        need_to_write_something_here: 1
+        why_all_zeros: 0
+      }
+      message_level_three {
+        need_to_write_something_here: 1
+        why_all_zeros: 0
+      }
+      message_level_three {
+        need_to_write_something_here: 1
+        why_all_zeros: 0
+      }
+      message_level_three {
+        need_to_write_something_here: 1
+        why_all_zeros: 0
+      }
+      message_level_three {
+        need_to_write_something_here: 1
+        why_all_zeros: 0
+      }
+      message_level_three {
+        need_to_write_something_here: 1
+        why_all_zeros: 0
+      }
+      master_yoda_said: "Do or do not, there is no try"
+      message_level_three_unique {
+        need_to_write_something_here: 5
+        why_all_zeros: 3
+      }
+      message_level_three_but_unique {
+        key: "1234554321"
+        text: "ha ha"
+      }
+      and_here_too: 0
+      help_me: 12
+      i_do_not_know: false
+      what_to: false
+      write_here: false
+    }
+    and_boolean_in_the_end: false
+  }
+}

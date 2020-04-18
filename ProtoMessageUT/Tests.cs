@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using ProtoMessageOriginal;
 
@@ -8,63 +9,77 @@ namespace ProtoMessageUT
     internal class ProtoBuffUt
     {
         private const string RootMessage = "root_message";
-        private const string NotExistingMessage = "not_existing_message";
-        
-        private const string SomeText = "jedi_phrases";
-        private const string SomeTextVal = "- These aren`t the droids you're looking for!";
-
-        private const string SomeSingleNumber = "favourite_number";
-        private const string SomeSingleNumberVal = "7";
-
-        private const string FirstScaledPrice = "5883";
-
-        private const string SecondScaledPrice = "14";
-        
+        private const string RootMessage2 = "root_message2";
         private const string RepeatedSubmessage = "repeated_sub_message";
+        private const string RepeatedAttribute = "repeated_sub_message";
+        private const string NotExistingMessage = "not_existing_message";
 
+        private static readonly (string, string) SomeText = 
+            ("jedi_phrases", "- These aren`t the droids you're looking for!");
+
+        private static readonly (string, string) SomeSingleNumber = ("favourite_number", "7");
+        private static readonly (string, string) FirstInt = (RepeatedAttribute, "74373");
+        private static readonly (string, string) SecondInt = (RepeatedAttribute, "2341");
+
+        private static readonly (string, string) RootAttribute1 = ("root_attr_1", "root_attr_1_val");
+        private static readonly (string, string) RootAttribute2 = ("root_attr_2", "21342345");
         
+        private static readonly (string, string) RootMsg2Attr = ("dirty_string", " ha-ha TAKE THIS: \"quoted!\" ! ");
 
         private readonly string _protoText =
+            $"{RootAttribute1.Item1}: {RootAttribute1.Item2}\n" +
+            $"{RootAttribute2.Item1}: {RootAttribute2.Item2}\n" +
             $"{RootMessage} {{\n"
-            + $"  {SomeSingleNumber}: {SomeSingleNumberVal}\n"
-            + $"  {SomeText}: \"{SomeTextVal}\"\n"
+            + $"  {SomeSingleNumber.Item1}: {SomeSingleNumber.Item2}\n"
+            + $"  {SomeText.Item1}: \"{SomeText.Item2}\"\n"
             + $"  {RepeatedSubmessage} {{\n"
             + "    type: 1\n"
-            + "    quote_utc_time: 638427648\n"
-            + $"    scaled_price: {FirstScaledPrice}\n"
-            + $"    scaled_price: {SecondScaledPrice}\n"
+            + "    time: 638427648\n"
+            + $"    {RepeatedAttribute}: {FirstInt.Item2}\n"
+            + $"    {RepeatedAttribute}: {SecondInt.Item2}\n"
             + "  }\n"
             + $"  {RepeatedSubmessage} {{\n"
             + "    type: 2\n"
-            + $"    scaled_price: {FirstScaledPrice}\n"
-            + $"    scaled_price: {SecondScaledPrice}\n"
+            + $"    {RepeatedAttribute}: {FirstInt.Item2}\n"
+            + $"    {RepeatedAttribute}: {SecondInt.Item2}\n"
             + "  }\n"
-            + "}";
+            + "}\n" +
+            $"{RootMessage2} {{\n"
+            + $"  {RootMsg2Attr.Item1}: {RootMsg2Attr.Item2}\n"
+            + "}\n";
 
         private void ProtoParse<T>() where T : IProtoMessage<T>, new()
         {
             var pm = new T();
             pm.Parse(_protoText);
-            pm = pm.GetElement(RootMessage);
-            Assert.IsNotNull(pm);
 
             Assert.AreEqual(new List<T>(), pm.GetElementList(NotExistingMessage));
             Assert.AreEqual(new List<string>(), pm.GetAttributeList(NotExistingMessage));
 
-            Assert.AreEqual(SomeSingleNumberVal, pm.GetAttribute(SomeSingleNumber));
-            Assert.AreEqual(SomeTextVal, pm.GetAttribute(SomeText));
+            T rootMsg = pm.GetElement(RootMessage);
+            Assert.IsNotNull(rootMsg);
+            
+            Assert.AreEqual(SomeSingleNumber.Item2, rootMsg.GetAttribute(SomeSingleNumber.Item1));
+            Assert.AreEqual(SomeText.Item2, rootMsg.GetAttribute(SomeText.Item1));
 
-            List<T> listPm = pm.GetElementList(RepeatedSubmessage);
+            List<T> listPm = rootMsg.GetElementList(RepeatedSubmessage);
             Assert.That(listPm.Count, Is.EqualTo(2));
-            foreach (T protoMessage in listPm)
+            foreach (T repeatedSubMsg in listPm)
             {
-                List<string> attrList = protoMessage.GetAttributeList("scaled_price");
-                Assert.That(protoMessage.GetAttribute("scaled_price"), Is.EqualTo(FirstScaledPrice));
-                Assert.That(attrList.Count, Is.EqualTo(2));
-                Assert.That(attrList[1], Is.EqualTo(SecondScaledPrice));
+                List<string> attrList = repeatedSubMsg.GetAttributeList(RepeatedAttribute);
+                Assert.AreEqual(FirstInt.Item2, repeatedSubMsg.GetAttribute(RepeatedAttribute));
+                Assert.AreEqual(2, attrList.Count);
+                Assert.AreEqual(SecondInt.Item2, attrList[1]);
             }
+            
+            Assert.Contains(RootMessage, pm.GetKeys());
+            Assert.Contains(RootMessage2, pm.GetKeys());
+            Assert.AreEqual(2, pm.GetKeys().Select(x => x).Count(x => x == RepeatedSubmessage));
+            Assert.AreEqual(2, rootMsg.GetKeys().Select(x => x).Count(x => x == RepeatedSubmessage));
+            Assert.AreEqual(2, rootMsg.GetKeys().Count);
 
-            Assert.AreEqual(new List<string> {RepeatedSubmessage, RepeatedSubmessage}, pm.GetKeys());
+            T rootMsg2 = pm.GetElement(RootMessage2);
+            Assert.AreEqual(RootMsg2Attr.Item2, rootMsg2.GetAttribute(RootMsg2Attr.Item1));
         }
 
         [Test]

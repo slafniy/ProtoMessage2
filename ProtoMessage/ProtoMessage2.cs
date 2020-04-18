@@ -99,8 +99,8 @@ namespace ProtoMessageOriginal
         private class Attribute
         {
             private readonly int _index;
-            private readonly string _protoAsText;
-            private string _value = null;
+            private readonly string? _protoAsText;
+            private string? _value;
 
             public string Value => _value ?? ParseAttributeValue();
 
@@ -218,7 +218,7 @@ namespace ProtoMessageOriginal
             return _attributes.ContainsKey(name) && _attributes[name].Count > 0 ? _attributes[name][0].Value : null;
         }
 
-        public List<string> GetKeys()
+        public List<string> GetKeys()  // TODO: it should return data from sub-messages too!
         {
             ParseCurrentLevel();
             return (from kv in _subMessages from _ in kv.Value select kv.Key).ToList();
