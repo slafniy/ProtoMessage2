@@ -49,6 +49,8 @@ namespace ProtoMessageOriginal
     public class ProtoMessage2 : IProtoMessage<ProtoMessage2>
     {
         private readonly List<MsgMatrixElement> _matrix = new List<MsgMatrixElement>();
+        private readonly int _matrixStart;
+        private int _matrixEnd;
         private string _protoAsText;
         private readonly int _level = 1;
         private bool _isParsed;
@@ -71,9 +73,12 @@ namespace ProtoMessageOriginal
             }
         }
 
-        private ProtoMessage2(List<MsgMatrixElement> matrix, int level, string protoAsText)
+        private ProtoMessage2(List<MsgMatrixElement> matrix, int matrixStart, int matrixEnd, int level, 
+            string protoAsText)
         {
             _matrix = matrix;
+            _matrixStart = matrixStart;
+            _matrixEnd = matrixEnd;
             _level = level;
             _protoAsText = protoAsText;
         }
@@ -88,7 +93,7 @@ namespace ProtoMessageOriginal
             _isParsed = true;
 
             int msgStartPos = 0;
-            for (int i = 0; i < _matrix.Count; i++)
+            for (int i = _matrixStart; i <= _matrixEnd; i++)
             {
                 MsgMatrixElement el = _matrix[i];
                 if (el.Type == MsgMatrixElementType.MessageStart && el.Level == _level)
@@ -100,8 +105,7 @@ namespace ProtoMessageOriginal
                 if (el.Type == MsgMatrixElementType.MessageEnd && el.Level == _level)
                 {
                     SubMessages.AddField(GetName(_matrix[msgStartPos].Index),
-                        new ProtoMessage2(_matrix.GetRange(msgStartPos + 1, i - msgStartPos - 1),
-                            _level + 1, _protoAsText));
+                        new ProtoMessage2(_matrix, msgStartPos, i, _level + 1, _protoAsText));
                 }
 
                 if (el.Level == _level - 1 && el.Type == MsgMatrixElementType.Attribute)
@@ -164,25 +168,38 @@ namespace ProtoMessageOriginal
         {
             _protoAsText = protoAsText;
             int currentLevel = 0;
+            bool prevColon = false;  // to process colons in string attributes 
             for (int i = 0; i < _protoAsText.Length; i++)
             {
                 char c = _protoAsText[i];
                 switch (c)
                 {
                     case ':':
+                        if (prevColon)
+                        {
+                            continue;  
+                        }
                         _matrix.Add(
                             new MsgMatrixElement(MsgMatrixElementType.Attribute, i, currentLevel));
+                        prevColon = true;
                         break;
                     case '{':
                         currentLevel++;
                         _matrix.Add(new MsgMatrixElement(MsgMatrixElementType.MessageStart, i, currentLevel));
+                        prevColon = false;
                         break;
                     case '}':
                         _matrix.Add(new MsgMatrixElement(MsgMatrixElementType.MessageEnd, i, currentLevel));
                         currentLevel--;
+                        prevColon = false;
+                        break;
+                    case '\n':
+                        prevColon = false;
                         break;
                 }
             }
+
+            _matrixEnd = _matrix.Count - 1;
         }
 
         public ProtoMessage2()
@@ -232,14 +249,15 @@ namespace ProtoMessageOriginal
         {
             var res = new List<string>();
 
-            foreach (MsgMatrixElement el in _matrix)
+            for (int i = _matrixStart; i < _matrixEnd; i++)
             {
-                if (el.Type == MsgMatrixElementType.MessageStart)
+                MsgMatrixElement el = _matrix[i];
+                if (el.Type == MsgMatrixElementType.MessageStart && el.Level >= _level)
                 {
                     res.Add(GetName(el.Index));
                 }
             }
-            
+
             return res;
         }
     }

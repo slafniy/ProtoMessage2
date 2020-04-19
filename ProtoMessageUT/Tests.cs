@@ -27,7 +27,7 @@ namespace ProtoMessageUT
         private static readonly (string, string) RootMsg2Attr = ("dirty_string", " ha-ha TAKE THIS: \"quoted!\" ! ");
 
         private readonly string _protoText =
-            $"{RootAttribute1.Item1}: {RootAttribute1.Item2}\n" +
+            $"{RootAttribute1.Item1}: \"{RootAttribute1.Item2}\"\n" +
             $"{RootAttribute2.Item1}: {RootAttribute2.Item2}\n" +
             $"{RootMessage} {{\n"
             + $"  {SomeSingleNumber.Item1}: {SomeSingleNumber.Item2}\n"
@@ -45,7 +45,7 @@ namespace ProtoMessageUT
             + "  }\n"
             + "}\n" +
             $"{RootMessage2} {{\n"
-            + $"  {RootMsg2Attr.Item1}: {RootMsg2Attr.Item2}\n"
+            + $"  {RootMsg2Attr.Item1}: \"{RootMsg2Attr.Item2}\"\n"
             + "}\n";
 
         private void ProtoParse<T>() where T : IProtoMessage<T>, new()
