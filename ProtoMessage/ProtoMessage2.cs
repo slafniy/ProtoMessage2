@@ -133,7 +133,7 @@ namespace ProtoMessageOriginal
             {
                 int index = _index;
                 int start = index + 1; // skip whitespace
-                while (index < _protoAsText.Length && _protoAsText[index] != '}' && _protoAsText[index] != '\n')
+                while (index < _protoAsText.Length && _protoAsText[index] != '\n')
                 {
                     index++;
                 }
@@ -177,21 +177,27 @@ namespace ProtoMessageOriginal
                     case ':':
                         if (prevColon)
                         {
-                            continue;  
+                            continue;
                         }
                         _matrix.Add(
                             new MsgMatrixElement(MsgMatrixElementType.Attribute, i, currentLevel));
                         prevColon = true;
                         break;
                     case '{':
+                        if (prevColon)
+                        {
+                            continue;
+                        }
                         currentLevel++;
                         _matrix.Add(new MsgMatrixElement(MsgMatrixElementType.MessageStart, i, currentLevel));
-                        prevColon = false;
                         break;
                     case '}':
+                        if (prevColon)
+                        {
+                            continue;
+                        }
                         _matrix.Add(new MsgMatrixElement(MsgMatrixElementType.MessageEnd, i, currentLevel));
                         currentLevel--;
-                        prevColon = false;
                         break;
                     case '\n':
                         prevColon = false;

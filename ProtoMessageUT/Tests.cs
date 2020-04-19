@@ -14,7 +14,7 @@ namespace ProtoMessageUT
         private const string RepeatedAttribute = "repeated_sub_message";
         private const string NotExistingMessage = "not_existing_message";
 
-        private static readonly (string, string) SomeText = 
+        private static readonly (string, string) SomeText =
             ("jedi_phrases", "- These aren`t the droids you're looking for!");
 
         private static readonly (string, string) SomeSingleNumber = ("favourite_number", "7");
@@ -23,8 +23,9 @@ namespace ProtoMessageUT
 
         private static readonly (string, string) RootAttribute1 = ("root_attr_1", "root_attr_1_val");
         private static readonly (string, string) RootAttribute2 = ("root_attr_2", "21342345");
-        
-        private static readonly (string, string) RootMsg2Attr = ("dirty_string", " ha-ha TAKE THIS: \"quoted!\" ! ");
+
+        private static readonly (string, string) RootMsg2Attr = ("dirty_string", 
+            " ha-ha TAKE THIS: \"quoted!\" and this: { } { { { }} hope your code died here ");
 
         private readonly string _protoText =
             $"{RootAttribute1.Item1}: \"{RootAttribute1.Item2}\"\n" +
@@ -62,7 +63,7 @@ namespace ProtoMessageUT
             Assert.Contains(RootMessage2, pm.GetKeys());
             Assert.AreEqual(4, pm.GetKeys().Count);
             Assert.AreEqual(2, pm.GetKeys().Select(x => x).Count(x => x == RepeatedSubmessage));
-            
+
             Assert.AreEqual(SomeSingleNumber.Item2, rootMsg.GetAttribute(SomeSingleNumber.Item1));
             Assert.AreEqual(SomeText.Item2, rootMsg.GetAttribute(SomeText.Item1));
 
@@ -75,7 +76,7 @@ namespace ProtoMessageUT
                 Assert.AreEqual(2, attrList.Count);
                 Assert.AreEqual(SecondInt.Item2, attrList[1]);
             }
-            
+
             Assert.AreEqual(2, rootMsg.GetKeys().Select(x => x).Count(x => x == RepeatedSubmessage));
             Assert.AreEqual(2, rootMsg.GetKeys().Count);
 
@@ -84,9 +85,14 @@ namespace ProtoMessageUT
         }
 
         [Test]
-        public void ProtoParse()
+        public void ProtoMessage()
         {
             ProtoParse<ProtoMessage>();
+        }
+
+        [Test]
+        public void ProtoMessage2()
+        {
             ProtoParse<ProtoMessage2>();
         }
     }
