@@ -95,5 +95,11 @@ namespace ProtoMessageUT
         {
             ProtoParse<ProtoMessage2>();
         }
+
+        [Test]
+        public void ProtoMessage4()
+        {
+            ProtoParse<ProtoMessage4>();
+        }
     }
 }

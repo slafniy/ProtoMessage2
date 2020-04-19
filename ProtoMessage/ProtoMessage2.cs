@@ -138,7 +138,15 @@ namespace ProtoMessageOriginal
                     index++;
                 }
 
-                _value = _protoAsText.Substring(start, index - start).Trim('"');
+                _value = _protoAsText.Substring(start, index - start);
+                if (_value[_value.Length - 1] == '\r')
+                {
+                    _value = _value.Substring(0, _value.Length - 1);
+                }
+                if (_value[0] == '"')
+                {
+                    _value = _value.Substring(1, _value.Length - 2);
+                }
                 return _value;
             }
         }
