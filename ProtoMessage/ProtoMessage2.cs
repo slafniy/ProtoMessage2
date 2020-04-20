@@ -9,7 +9,6 @@ namespace ProtoMessageOriginal
     {
         private readonly int _index; // global "position" in text, '{' for message and ':' for attribute
         public readonly int? Level; // increases on each '{' decreases on each '}'
-        public string? Name => _name ?? ParseName();
         public string Value => _value ?? ParseAttributeValue();
         private string? _value;
         private string? _name;
@@ -30,6 +29,34 @@ namespace ProtoMessageOriginal
             return $"Index: {_index} Level: {Level} ";
         }
 
+        public bool CheckName(string name)
+        {
+            if (_name != null && _name == name)
+            {
+                return true;
+            }
+            
+            int nameIdx = name.Length - 1;  // the end of the name
+            int attrIdx = _index - 1;  // skip colon
+            
+            // Look backward for newline or message beginning
+
+            while (nameIdx >= 0)
+            {
+                if (name[nameIdx] != _protoAsText[attrIdx])
+                {
+                    return false;
+                }
+                attrIdx--;
+                nameIdx--;
+            }
+
+            attrIdx--;
+            bool res = _protoAsText[attrIdx] == ' ' || _protoAsText[attrIdx] == '\n';
+            _name = name;
+            return res;
+        }
+        
         private string ParseName()
         {
             int idx = _index;
@@ -209,7 +236,7 @@ namespace ProtoMessageOriginal
             var res = new List<string>();
             foreach (int i in _matrix[_indexInMatrix].AttributeIndexes)
             {
-                if (_matrixAttrs[i].Name == name)
+                if (_matrixAttrs[i].CheckName(name))
                 {
                     res.Add(_matrixAttrs[i].Value);
                 }
@@ -233,7 +260,7 @@ namespace ProtoMessageOriginal
         {
             foreach (int idx in _matrix[_indexInMatrix].AttributeIndexes)
             {
-                if (_matrixAttrs[idx].Name == name)
+                if (_matrixAttrs[idx].CheckName(name))
                 {
                     return _matrixAttrs[idx].Value;
                 }
