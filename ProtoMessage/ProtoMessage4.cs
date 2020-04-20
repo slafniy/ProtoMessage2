@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 
 namespace ProtoMessageOriginal
 {
@@ -10,10 +9,6 @@ namespace ProtoMessageOriginal
     {
         private readonly List<(LazyString, LazyAttributeString)> _attributes = new List<(LazyString, LazyAttributeString)>();
         private readonly List<(LazyString, ProtoMessage4)> _subMessages = new List<(LazyString, ProtoMessage4)>();
-
-
-        private readonly List<(LazyString, LazyAttributeString)> _attributesBy = new List<(LazyString, LazyAttributeString)>();
-
 
         public ProtoMessage4()
         {
@@ -170,7 +165,16 @@ namespace ProtoMessageOriginal
 
         public List<ProtoMessage4> GetElementList(string name)
         {
-            return _subMessages.Where(item => item.Item1.Value == name).Select(item => item.Item2).ToList();
+            var res = new List<ProtoMessage4>();
+            for (int i = 0; i < _subMessages.Count; i++)
+            {
+                var subMessages = _subMessages[i];
+                if (subMessages.Item1.Value == name)
+                {
+                    res.Add(subMessages.Item2);
+                }
+            }
+            return res;
         }
 
         public ProtoMessage4 GetElement(string name)
@@ -188,7 +192,16 @@ namespace ProtoMessageOriginal
 
         public List<string> GetAttributeList(string name)
         {
-            return _attributes.Where(item => item.Item1.Value == name).Select(item => item.Item2.Value).ToList();
+            var res = new List<string>();
+            for (int i = 0; i < _attributes.Count; i++)
+            {
+                var attribute = _attributes[i];
+                if (attribute.Item1.Value == name)
+                {
+                    res.Add(attribute.Item2.Value);
+                }
+            }
+            return res;
         }
 
         public T GetAttribute<T>(string name) where T : struct
