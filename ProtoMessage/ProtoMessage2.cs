@@ -7,7 +7,6 @@ namespace ProtoMessageOriginal
     public enum MsgMatrixElementType
     {
         MessageStart = '{',
-        MessageEnd = '}',
         Attribute = ':'
     }
 
@@ -15,7 +14,7 @@ namespace ProtoMessageOriginal
     {
         public readonly MsgMatrixElementType Type;
         private readonly int _index;  // global "position" in text, '{' for message and ':' for attribute
-        public readonly int Level;  // increases on each '{' decreases on each '}'
+        public readonly int? Level;  // increases on each '{' decreases on each '}'
         public readonly List<int> ChildIndexes;  // sub-messages in matrix
         public readonly List<int> AttributeIndexes;  // attribute index in matrix
         public string? Name => _name ?? ParseName();
@@ -24,7 +23,7 @@ namespace ProtoMessageOriginal
         private string? _name;
         private readonly string _protoAsText;
         
-        public MsgMatrixElement(MsgMatrixElementType type, int index, int level, string protoAsText)
+        public MsgMatrixElement(MsgMatrixElementType type, int index, int? level, string protoAsText)
         {
             Type = type;
             _index = index;
@@ -87,7 +86,7 @@ namespace ProtoMessageOriginal
         private int _matrixEnd;
         private string _protoAsText;
         private readonly int _level = 1;
-        private readonly int? _indexInMatrix = null;
+        private readonly int _indexInMatrix = 0;
 
         private ProtoMessage2(List<MsgMatrixElement> matrix, int matrixStart, int matrixEnd, int level,
             string protoAsText, int indexInMatrix)
@@ -104,6 +103,8 @@ namespace ProtoMessageOriginal
         {
             _protoAsText = protoAsText;
             int currentLevel = 0;
+            var root = new MsgMatrixElement(MsgMatrixElementType.MessageStart, 0, null, protoAsText);
+            _matrix.Add(root);
             bool prevColon = false; // to process colons in string attributes 
             var currentParentMessages = new Dictionary<int, int>();  // level: indexInMatrix
             for (int i = 0; i < _protoAsText.Length; i++)
@@ -118,6 +119,10 @@ namespace ProtoMessageOriginal
                         {
                             _matrix[indexInMatrix].AttributeIndexes.Add(_matrix.Count - 1);
                         }
+                        else
+                        {
+                            root.AttributeIndexes.Add(_matrix.Count - 1);
+                        }
                         prevColon = true;
                         break;
                     case '{' when !prevColon:
@@ -127,10 +132,13 @@ namespace ProtoMessageOriginal
                         {
                             _matrix[indexInMatrix].ChildIndexes.Add(_matrix.Count - 1);
                         }
+                        else
+                        {
+                            root.ChildIndexes.Add(_matrix.Count - 1);
+                        }
                         currentParentMessages[currentLevel] = _matrix.Count - 1;
                         break;
                     case '}' when !prevColon:
-                        _matrix.Add(new MsgMatrixElement(MsgMatrixElementType.MessageEnd, i, currentLevel, _protoAsText));
                         currentLevel--;
                         break;
                     case '\n':
@@ -149,22 +157,7 @@ namespace ProtoMessageOriginal
         public List<ProtoMessage2> GetElementList(string name)
         {
             var res = new List<ProtoMessage2>();
-            if (_indexInMatrix == null)  // TODO: I really need a root message
-            {
-                for (int index = 0; index < _matrix.Count; index++)
-                {
-                    MsgMatrixElement el = _matrix[index];
-                    if (el.Level == _level && el.Type == MsgMatrixElementType.MessageStart && el.Name == name)
-                    {
-                        res.Add(new ProtoMessage2(_matrix, _matrixStart, _matrixEnd, _level + 1, _protoAsText, index));
-                    }
-                }
-
-                return res;
-            }
-            
-            // if we does know submessage
-            foreach (int idx in _matrix[(int) _indexInMatrix].ChildIndexes)
+            foreach (int idx in _matrix[_indexInMatrix].ChildIndexes)
             {
                 if (_matrix[idx].Name == name)
                 {
@@ -194,22 +187,7 @@ namespace ProtoMessageOriginal
         public List<string> GetAttributeList(string name)
         {
             var res = new List<string>();
-
-            if (_indexInMatrix == null)  // root message case
-            {
-                foreach (MsgMatrixElement el in _matrix)
-                {
-                    if (el.Level == _level && el.Type == MsgMatrixElementType.Attribute && el.Name == name)
-                    {
-                        res.Add(el.Value);
-                    }
-                }
-
-                return res;
-            }
-            
-            // nested message case
-            foreach (int i in _matrix[(int) _indexInMatrix].AttributeIndexes)
+            foreach (int i in _matrix[_indexInMatrix].AttributeIndexes)
             {
                 if (_matrix[i].Name == name)
                 {
@@ -233,27 +211,12 @@ namespace ProtoMessageOriginal
 
         public string GetAttribute(string name)
         {
-            if (_indexInMatrix != null)  // We does know children
+            foreach (int idx in _matrix[_indexInMatrix].AttributeIndexes)
             {
-                foreach (int idx in _matrix[(int) _indexInMatrix].AttributeIndexes)
+                if (_matrix[idx].Name == name)
                 {
-                    if (_matrix[idx].Name == name)
-                    {
-                        return _matrix[idx].Value;
-                    }
+                    return _matrix[idx].Value;
                 }
-
-                return null;
-            }
-            // we're have to find root message attribute
-            foreach (MsgMatrixElement el in _matrix)
-            {
-                if (el.Level != _level || el.Type != MsgMatrixElementType.Attribute || el.Name != name)
-                {
-                    continue;
-                }
-
-                return el.Value;
             }
 
             return null;
