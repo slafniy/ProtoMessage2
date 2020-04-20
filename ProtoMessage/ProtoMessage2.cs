@@ -99,7 +99,7 @@ namespace ProtoMessageOriginal
             _protoAsText = protoAsText;
             _indexInMatrix = indexInMatrix;
         }
-        
+
         public void Parse(string protoAsText)
         {
             _protoAsText = protoAsText;
