@@ -38,8 +38,6 @@ namespace ProtoMessageOriginal
             
             int nameIdx = name.Length - 1;  // the end of the name
             int attrIdx = _index - 1;  // skip colon
-            
-            // Look backward for newline or message beginning
 
             while (nameIdx >= 0)
             {
@@ -52,7 +50,7 @@ namespace ProtoMessageOriginal
             }
 
             attrIdx--;
-            bool res = _protoAsText[attrIdx] == ' ' || _protoAsText[attrIdx] == '\n';
+            bool res = attrIdx < 0 || _protoAsText[attrIdx] == ' ' || _protoAsText[attrIdx] == '\n';
             _name = name;
             return res;
         }
@@ -100,6 +98,34 @@ namespace ProtoMessageOriginal
                    $"AttributeIndexes: {string.Join(", ", AttributeIndexes)}";
         }
 
+        public bool CheckName(string name)
+        {
+            if (_name != null && _name == name)
+            {
+                return true;
+            }
+            
+            int nameIdx = name.Length - 1;  // the end of the name
+            int msgIdx = _index - 2;  // skip '{' and whitespace
+            
+            // Look backward for newline or message beginning
+            while (nameIdx >= 0)
+            {
+                if (name[nameIdx] != _protoAsText[msgIdx])
+                {
+                    return false;
+                }
+
+                msgIdx--;
+                nameIdx--;
+            }
+
+
+            bool res = msgIdx < 0 || _protoAsText[msgIdx] == ' ' || _protoAsText[msgIdx] == '\n';
+            _name = name;
+            return res;
+        }
+        
         private string ParseName()
         {
             int idx = _index;
@@ -142,18 +168,23 @@ namespace ProtoMessageOriginal
             var root = new MsgMatrixElement(0, null, protoAsText);
             _matrix.Add(root);
             bool prevColon = false; // to process colons in string attributes 
-            var currentParentMessages = new Dictionary<int, int>(); // level: indexInMatrix
+            var currentParentMessages = new int?[10]; // [level]: indexInMatrix
+            for (int i = 0; i < currentParentMessages.Length; i++)
+            {
+                currentParentMessages[i] = null;
+            }
+            
             for (int i = 0; i < _protoAsText.Length; i++)
             {
                 char c = _protoAsText[i];
-                int indexInMatrix;
                 switch (c)
                 {
                     case ':' when !prevColon:
                         _matrixAttrs[currAttrIdx] = new AttrMatrixElement(i, currentLevel, _protoAsText);
-                        if (currentParentMessages.TryGetValue(currentLevel, out indexInMatrix))
+                        
+                        if (currentParentMessages[currentLevel] != null)
                         {
-                            _matrix[indexInMatrix].AttributeIndexes.Add(currAttrIdx);
+                            _matrix[(int) currentParentMessages[currentLevel]].AttributeIndexes.Add(currAttrIdx);
                         }
                         else
                         {
@@ -166,9 +197,9 @@ namespace ProtoMessageOriginal
                     case '{' when !prevColon:
                         currentLevel++;
                         _matrix.Add(new MsgMatrixElement(i, currentLevel, _protoAsText));
-                        if (currentParentMessages.TryGetValue(currentLevel - 1, out indexInMatrix))
+                        if (currentParentMessages[currentLevel - 1] != null)
                         {
-                            _matrix[indexInMatrix].ChildIndexes.Add(_matrix.Count - 1);
+                            _matrix[(int) currentParentMessages[currentLevel - 1]].ChildIndexes.Add(_matrix.Count - 1);
                         }
                         else
                         {
@@ -196,7 +227,7 @@ namespace ProtoMessageOriginal
             var res = new List<ProtoMessage2>();
             foreach (int idx in _matrix[_indexInMatrix].ChildIndexes)
             {
-                if (_matrix[idx].Name == name)
+                if (_matrix[idx].CheckName(name))
                 {
                     res.Add(new ProtoMessage2(_matrix, ref _matrixAttrs, _level + 1, _protoAsText, idx));
                 }
@@ -209,7 +240,7 @@ namespace ProtoMessageOriginal
         {
             foreach (int idx in _matrix[_indexInMatrix].ChildIndexes)
             {
-                if (_matrix[idx].Name == name)
+                if (_matrix[idx].CheckName(name))
                 {
                     return new ProtoMessage2(_matrix, ref _matrixAttrs, _level + 1, _protoAsText, idx);
                 }
