@@ -145,11 +145,11 @@ namespace ProtoMessageBench
             JustParse<ProtoMessage2>(uint.Parse(args[0]), testData);
             JustParse<ProtoMessage4>(uint.Parse(args[0]), testData);
             
-            //PartialRead<ProtoMessage>(uint.Parse(args[0]), testData);
+            PartialRead<ProtoMessage>(uint.Parse(args[0]), testData);
             PartialRead<ProtoMessage2>(uint.Parse(args[0]), testData);
             PartialRead<ProtoMessage4>(uint.Parse(args[0]), testData);
             
-            //ReadAll<ProtoMessage>(uint.Parse(args[0]), testData);
+            ReadAll<ProtoMessage>(uint.Parse(args[0]), testData);
             ReadAll<ProtoMessage2>(uint.Parse(args[0]), testData);
             ReadAll<ProtoMessage4>(uint.Parse(args[0]), testData);
         }

@@ -1,1 +1,1 @@
-﻿*.bat eol=ProtoMessageBench/TestData.txt
+﻿ProtoMessageBench/TestData.txt eol=lf
