@@ -193,15 +193,12 @@ namespace ProtoMessageOriginal
 
         public ProtoMessage2 GetElement(string name)
         {
-            for (int i = 0; i < _matrix.Count; i++)
+            foreach (int idx in _matrix[_indexInMatrix].ChildIndexes)
             {
-                MsgMatrixElement el = _matrix[i];
-                if (el.Level != _level || el.Name != name)
+                if (_matrix[idx].Name == name)
                 {
-                    continue;
+                    return new ProtoMessage2(_matrix, _matrixAttrs, _level + 1, _protoAsText, idx);
                 }
-
-                return new ProtoMessage2(_matrix, _matrixAttrs, _level + 1, _protoAsText, i);
             }
 
             return null;
