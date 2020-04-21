@@ -157,14 +157,12 @@ namespace ProtoMessageOriginal
             _matrixAttrs = new AttrMatrixElement[_protoAsText.Length / 4];  // minimal possible attribute has 4 chars
             int currAttrIdx = 0;
             int currentLevel = 0;
+            bool prevColon = false; // to process colons in string attributes 
+            
             var root = new MsgMatrixElement(0, null, protoAsText);
             _matrix.Add(root);
-            bool prevColon = false; // to process colons in string attributes 
-            var currentParentMessages = new int?[10]; // [level]: indexInMatrix
-            for (int i = 0; i < currentParentMessages.Length; i++)
-            {
-                currentParentMessages[i] = null;
-            }
+            var currentParentMessages = new Stack<int>(); // [level]: indexInMatrix
+            currentParentMessages.Push(0);
             
             for (int i = 0; i < _protoAsText.Length; i++)
             {
@@ -173,35 +171,19 @@ namespace ProtoMessageOriginal
                 {
                     case ':' when !prevColon:
                         _matrixAttrs[currAttrIdx] = new AttrMatrixElement(i, currentLevel, _protoAsText);
-                        
-                        if (currentParentMessages[currentLevel] != null)
-                        {
-                            _matrix[(int) currentParentMessages[currentLevel]].AttributeIndexes.Add(currAttrIdx);
-                        }
-                        else
-                        {
-                            root.AttributeIndexes.Add(currAttrIdx);
-                        }
-
+                        _matrix[currentParentMessages.Peek()].AttributeIndexes.Add(currAttrIdx);
                         currAttrIdx++;
                         prevColon = true;
                         break;
                     case '{' when !prevColon:
                         currentLevel++;
                         _matrix.Add(new MsgMatrixElement(i, currentLevel, _protoAsText));
-                        if (currentParentMessages[currentLevel - 1] != null)
-                        {
-                            _matrix[(int) currentParentMessages[currentLevel - 1]].ChildIndexes.Add(_matrix.Count - 1);
-                        }
-                        else
-                        {
-                            root.ChildIndexes.Add(_matrix.Count - 1);
-                        }
-
-                        currentParentMessages[currentLevel] = _matrix.Count - 1;
+                        _matrix[currentParentMessages.Peek()].ChildIndexes.Add(_matrix.Count - 1);
+                        currentParentMessages.Push(_matrix.Count - 1);
                         break;
                     case '}' when !prevColon:
                         currentLevel--;
+                        currentParentMessages.Pop();
                         break;
                     case '\n':
                         prevColon = false;
