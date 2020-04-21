@@ -11,7 +11,6 @@ namespace ProtoMessageOriginal
         public readonly int? Level; // increases on each '{' decreases on each '}'
         public string Value => _value ?? ParseAttributeValue();
         private string? _value;
-        private string? _name;
         private readonly string _protoAsText;
 
         public AttrMatrixElement(int index, int? level, string protoAsText)
@@ -19,7 +18,6 @@ namespace ProtoMessageOriginal
             _index = index;
             Level = level;
             _value = null;
-            _name = null;
             _protoAsText = protoAsText;
         }
 
@@ -29,13 +27,9 @@ namespace ProtoMessageOriginal
             return $"Index: {_index} Level: {Level} ";
         }
 
+        // Do not save the result! Substring is too slow!
         public bool CheckName(string name)
         {
-            if (_name != null && _name == name)
-            {
-                return true;
-            }
-            
             int nameIdx = name.Length - 1;  // the end of the name
             int attrIdx = _index - 1;  // skip colon
 
@@ -51,7 +45,6 @@ namespace ProtoMessageOriginal
 
             attrIdx--;
             bool res = attrIdx < 0 || _protoAsText[attrIdx] == ' ' || _protoAsText[attrIdx] == '\n';
-            _name = name;
             return res;
         }
 
@@ -100,11 +93,6 @@ namespace ProtoMessageOriginal
 
         public bool CheckName(string name)
         {
-            if (_name != null && _name == name)
-            {
-                return true;
-            }
-            
             int nameIdx = name.Length - 1;  // the end of the name
             int msgIdx = _index - 2;  // skip '{' and whitespace
             
@@ -119,10 +107,8 @@ namespace ProtoMessageOriginal
                 msgIdx--;
                 nameIdx--;
             }
-
-
+            
             bool res = msgIdx < 0 || _protoAsText[msgIdx] == ' ' || _protoAsText[msgIdx] == '\n';
-            _name = name;
             return res;
         }
         
