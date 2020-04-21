@@ -7,87 +7,61 @@ namespace ProtoMessageOriginal
 
     public class ProtoMessage4 : IProtoMessage<ProtoMessage4>
     {
-        private readonly List<(LazyString, LazyAttributeString)> _attributes = new List<(LazyString, LazyAttributeString)>();
-        private readonly List<(LazyString, ProtoMessage4)> _subMessages = new List<(LazyString, ProtoMessage4)>();
+        private List<(LazyString, LazyString)> _attributes = new List<(LazyString, LazyString)>();
+        private List<(LazyString, ProtoMessage4)> _subMessages = new List<(LazyString, ProtoMessage4)>();
+
+
+        private readonly Dictionary<string, string> _attributesCache = new Dictionary<string, string>();
+        private readonly Dictionary<string, ProtoMessage4> _subMessagesCache = new Dictionary<string, ProtoMessage4>();
+
+        private string _protoAsText;
 
         public ProtoMessage4()
         {
         }
 
-        private class LazyString
+        public ProtoMessage4(string protoAsText)
         {
-            private readonly int _indexStart;
-            private readonly int _indexEnd;
-            private readonly string? _protoAsText;
-            private string? _value;
-
-            public string Value => _value ?? ParseAttributeValue();
-
-            public LazyString(int indexStart, int indexEnd, string protoAsText)
-            {
-                _indexStart = indexStart;
-                _indexEnd = indexEnd;
-                _protoAsText = protoAsText;
-            }
-
-            private string ParseAttributeValue()
-            {
-                int start = _indexStart;
-
-                _value = _protoAsText.Substring(start, _indexEnd - start);
-                return _value;
-            }
-
-            public long Hash => ((long)_indexStart) << 31 & _indexEnd;
+            _protoAsText = protoAsText;
         }
 
-        private class LazyAttributeString
+        private struct LazyString
         {
-            private readonly int _indexStart;
-            private readonly int _indexEnd;
-            private readonly string? _protoAsText;
-            private string? _value;
+            public readonly int _indexStart;
+            public readonly int _indexEnd;
 
-            public string Value => _value ?? ParseAttributeValue();
+            public string Value;
 
-            public LazyAttributeString(int indexStart, int indexEnd, string protoAsText)
+            public LazyString(int indexStart, int indexEnd)
             {
                 _indexStart = indexStart;
                 _indexEnd = indexEnd;
-                _protoAsText = protoAsText;
+                Value = null;
             }
 
-            private string ParseAttributeValue()
-            {
-                int start = _indexStart + 1; // skip whitespace
+            public static LazyString Empty = new LazyString(-1, -1);
 
-                _value = _protoAsText.Substring(start, _indexEnd - start);
-                if (_value[_value.Length - 1] == '\r')
-                {
-                    _value = _value.Substring(0, _value.Length - 1);
-                }
-                if (_value[0] == '"')
-                {
-                    _value = _value.Substring(1, _value.Length - 2);
-                }
-                return _value;
+            public bool isEqual(LazyString lazyStringd)
+            {
+                return lazyStringd._indexStart == _indexStart && lazyStringd._indexEnd == _indexEnd;
             }
         }
 
         public void Parse(string protoAsText)
         {
+            _protoAsText = protoAsText;
             var lengthToProcess = protoAsText.Length;
 
             Stack<ProtoMessage4> messagesStack = new Stack<ProtoMessage4>();
             var currentProtoMessage = this;
 
-            List<(LazyString, LazyAttributeString)> currentMessageAttributes = currentProtoMessage._attributes;
+            List<(LazyString, LazyString)> currentMessageAttributes = currentProtoMessage._attributes;
             List<(LazyString, ProtoMessage4)> currentMessagSubMessages = currentProtoMessage._subMessages;
 
             var elementNameStartPosition = 0;
 
             var attributeNameStartPosition = 0;
-            LazyString attributeName = null;
+            LazyString attributeName = LazyString.Empty;
 
             var attributeValueStartPosition = 0;
 
@@ -111,7 +85,7 @@ namespace ProtoMessageOriginal
                     }
                     else if (char1 == ':')
                     {
-                        attributeName = new LazyString(attributeNameStartPosition, i, protoAsText);
+                        attributeName = new LazyString(attributeNameStartPosition, i);
 
                         attributeValueStartPosition = i + 1;
                         attributeValue = true;
@@ -121,9 +95,9 @@ namespace ProtoMessageOriginal
                     else if (char1 == '{')
                     {
                         messagesStack.Push(currentProtoMessage);
-                        currentProtoMessage = new ProtoMessage4();
+                        currentProtoMessage = new ProtoMessage4(protoAsText);
                         currentMessagSubMessages.Add((
-                            new LazyString(elementNameStartPosition, i - 1, protoAsText),
+                            new LazyString(elementNameStartPosition, i - 1),
                             currentProtoMessage));
 
                         currentMessageAttributes = currentProtoMessage._attributes;
@@ -148,10 +122,10 @@ namespace ProtoMessageOriginal
 
                 if (char1 == '\n')
                 {
-                    if (attributeName != null)
+                    if (!attributeName.isEqual(LazyString.Empty))
                     {
-                        currentMessageAttributes.Add((attributeName, new LazyAttributeString(attributeValueStartPosition, i, protoAsText)));
-                        attributeName = null;
+                        currentMessageAttributes.Add((attributeName, new LazyString(attributeValueStartPosition, i)));
+                        attributeName = LazyString.Empty;
                     }
 
                     attributeNameStartPosition = i + 1;
@@ -163,13 +137,73 @@ namespace ProtoMessageOriginal
             }
         }
 
+        private string ParseLazyStringValue(LazyString lazyString)
+        {
+            if (lazyString.Value != null)
+            {
+                return lazyString.Value;
+            }
+
+            int start = lazyString._indexStart;
+
+            lazyString.Value = _protoAsText.Substring(start, lazyString._indexEnd - start);
+            return lazyString.Value;
+        }
+
+        private string ParseAttributeValue(LazyString lazyString)
+        {
+            if (lazyString.Value != null)
+            {
+                return lazyString.Value;
+            }
+
+            int start = lazyString._indexStart + 1; // skip whitespace
+
+            var value = _protoAsText.Substring(start, lazyString._indexEnd - start);
+            if (value[value.Length - 1] == '\r')
+            {
+                value = value.Substring(0, value.Length - 1);
+            }
+            if (value[0] == '"')
+            {
+                value = value.Substring(1, value.Length - 2);
+            }
+            lazyString.Value = value;
+            return value;
+        }
+
+        private bool AreEqual(LazyString lazyString, string anotherString)
+        {
+            int i = 0;
+            int j = lazyString._indexStart;
+            int length = anotherString.Length;
+
+            if (lazyString._indexEnd - j != length)
+            {
+                return false;
+            }
+
+            while (i < length)
+            {
+                if (anotherString[i] != _protoAsText[j])
+                {
+                    return false;
+                }
+
+                i++;
+                j++;
+            }
+
+            return true;
+        }
+
         public List<ProtoMessage4> GetElementList(string name)
         {
             var res = new List<ProtoMessage4>();
             for (int i = 0; i < _subMessages.Count; i++)
             {
                 var subMessages = _subMessages[i];
-                if (subMessages.Item1.Value == name)
+                if (AreEqual(subMessages.Item1, name))
                 {
                     res.Add(subMessages.Item2);
                 }
@@ -182,7 +216,7 @@ namespace ProtoMessageOriginal
             for (int i = 0; i < _subMessages.Count; i++)
             {
                 var subMessages = _subMessages[i];
-                if (subMessages.Item1.Value == name)
+                if (AreEqual(subMessages.Item1, name))
                 {
                     return subMessages.Item2;
                 }
@@ -196,9 +230,9 @@ namespace ProtoMessageOriginal
             for (int i = 0; i < _attributes.Count; i++)
             {
                 var attribute = _attributes[i];
-                if (attribute.Item1.Value == name)
+                if (AreEqual(attribute.Item1, name))
                 {
-                    res.Add(attribute.Item2.Value);
+                    res.Add(ParseAttributeValue(attribute.Item2));
                 }
             }
             return res;
@@ -226,9 +260,9 @@ namespace ProtoMessageOriginal
             for(int i = 0; i < _attributes.Count; i++)
             {
                 var attribute = _attributes[i];
-                if (attribute.Item1.Value == name)
+                if (AreEqual(attribute.Item1, name))
                 {
-                    return attribute.Item2.Value;
+                    return ParseAttributeValue(attribute.Item2);
                 }
             }
             return null;
@@ -242,7 +276,7 @@ namespace ProtoMessageOriginal
             {
                 foreach (var msg in messages)
                 {
-                    res.Add(msg.Item1.Value);
+                    res.Add(ParseLazyStringValue(msg.Item1));
                     GetSubMessages(msg.Item2._subMessages);
                 }
             }
