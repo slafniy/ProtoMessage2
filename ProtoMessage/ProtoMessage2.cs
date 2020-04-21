@@ -57,7 +57,13 @@ namespace ProtoMessageOriginal
                 index++;
             }
 
-            _value = _protoAsText.Substring(start, index - start).Trim('"');
+            // This works faster than .Trim()
+            if (_protoAsText[start] == '"' && _protoAsText[index-1] == '"')
+            {
+                start++;
+                index--;
+            }
+            _value = _protoAsText.Substring(start, index - start);
             return _value;
         }
     }
