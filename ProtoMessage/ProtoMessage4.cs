@@ -155,10 +155,6 @@ namespace ProtoMessageOriginal
             int start = lazyString._indexStart + 1; // skip whitespace
 
             var value = _protoAsText.Substring(start, lazyString._indexEnd - start);
-            if (value[value.Length - 1] == '\r')
-            {
-                value = value.Substring(0, value.Length - 1);
-            }
             if (value[0] == '"')
             {
                 value = value.Substring(1, value.Length - 2);
