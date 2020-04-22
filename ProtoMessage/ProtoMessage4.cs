@@ -10,10 +10,6 @@ namespace ProtoMessageOriginal
         private List<(LazyString, LazyString)> _attributes = new List<(LazyString, LazyString)>();
         private List<(LazyString, ProtoMessage4)> _subMessages = new List<(LazyString, ProtoMessage4)>();
 
-
-        private readonly Dictionary<string, string> _attributesCache = new Dictionary<string, string>();
-        private readonly Dictionary<string, ProtoMessage4> _subMessagesCache = new Dictionary<string, ProtoMessage4>();
-
         private string _protoAsText;
 
         public ProtoMessage4()
@@ -67,8 +63,10 @@ namespace ProtoMessageOriginal
 
             char char1;
 
-            bool isLineStart = true;
+            int isLineStart = 0;
             bool attributeValue = false;
+
+            var spaceMask = ~' ';
 
             for (int i = 0; i < lengthToProcess; i++)
             {
@@ -76,14 +74,14 @@ namespace ProtoMessageOriginal
 
                 if (!attributeValue)
                 {
-                    if (char1 == ' ' && isLineStart)
+                    if (char1 == ' ' && isLineStart == 0)
                     {
                         attributeNameStartPosition = i + 1;
                         elementNameStartPosition = i + 1;
 
                         continue;
                     }
-                    else if (char1 == ':')
+                    if (char1 == ':')
                     {
                         attributeName = new LazyString(attributeNameStartPosition, i);
 
@@ -92,7 +90,7 @@ namespace ProtoMessageOriginal
 
                         continue;
                     }
-                    else if (char1 == '{')
+                    if (char1 == '{')
                     {
                         messagesStack.Push(currentProtoMessage);
                         currentProtoMessage = new ProtoMessage4(protoAsText);
@@ -105,7 +103,7 @@ namespace ProtoMessageOriginal
 
                         continue;
                     }
-                    else if (char1 == '}')
+                    if (char1 == '}')
                     {
                         currentProtoMessage = messagesStack.Pop();
                         currentMessageAttributes = currentProtoMessage._attributes;
@@ -114,10 +112,7 @@ namespace ProtoMessageOriginal
                         continue;
                     }
 
-                    else
-                    {
-                        isLineStart = false;
-                    }
+                    isLineStart = char1 & spaceMask;
                 }
 
                 if (char1 == '\n')
@@ -131,7 +126,7 @@ namespace ProtoMessageOriginal
                     attributeNameStartPosition = i + 1;
                     elementNameStartPosition = i + 1;
 
-                    isLineStart = true;
+                    isLineStart = 0;
                     attributeValue = false;
                 }
             }
