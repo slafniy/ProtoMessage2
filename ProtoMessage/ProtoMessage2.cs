@@ -58,7 +58,7 @@ namespace ProtoMessageOriginal
             }
 
             // This works faster than .Trim()
-            if (_protoAsText[start] == '"' && _protoAsText[index - 1] == '"')
+            if (_protoAsText[start] == '"')
             {
                 start++;
                 index--;
