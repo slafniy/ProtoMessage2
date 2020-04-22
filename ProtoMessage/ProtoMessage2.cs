@@ -4,6 +4,17 @@ using System.Globalization;
 
 namespace ProtoMessageOriginal
 {
+    // Chars bitwise negatives
+    public static class NChars
+    {
+        public const int Space = ~' ';
+        public const int NewLine = ~'\n';
+        public const int Quote = ~'"';
+        public const int BraceOpen = ~'{';
+        public const int BraceClose = ~'}';
+        public const int Colon = ~':';
+    }
+
     public struct Attribute
     {
         private readonly int _index; // global "position" in text, '{' for message and ':' for attribute
@@ -44,7 +55,8 @@ namespace ProtoMessageOriginal
             }
 
             attrIdx--;
-            bool res = attrIdx < 0 || _protoAsText[attrIdx] == ' ' || _protoAsText[attrIdx] == '\n';
+            bool res = attrIdx < 0 || (_protoAsText[attrIdx] & NChars.Space) == 0 ||
+                       (_protoAsText[attrIdx] & NChars.NewLine) == 0;
             return res;
         }
 
@@ -52,13 +64,13 @@ namespace ProtoMessageOriginal
         {
             int index = _index;
             int start = index + 2; // skip whitespace
-            while (index < _protoAsText.Length && _protoAsText[index] != '\n')
+            while (index < _protoAsText.Length && (_protoAsText[index] & NChars.NewLine) != 0)
             {
                 index++;
             }
 
             // This works faster than .Trim()
-            if (_protoAsText[start] == '"')
+            if ((_protoAsText[start] & NChars.Quote) == 0)
             {
                 start++;
                 index--;
@@ -115,7 +127,8 @@ namespace ProtoMessageOriginal
                 nameIdx--;
             }
 
-            return msgIdx < 0 || _protoAsText[msgIdx] == ' ' || _protoAsText[msgIdx] == '\n';
+            return msgIdx < 0 || (_protoAsText[msgIdx] & NChars.Space) == 0 ||
+                   (_protoAsText[msgIdx] & NChars.NewLine) == 0;
         }
 
         private string ParseName()
@@ -123,7 +136,8 @@ namespace ProtoMessageOriginal
             int idx = _index;
             // Look backward for newline or message beginning
             int start = idx -= 1; // skip whitespace for message or colon for attribute
-            while (start > 0 && _protoAsText[start - 1] != ' ' && _protoAsText[start - 1] != '\n')
+            while (start > 0 && (_protoAsText[start - 1] & NChars.Space) != 0 &&
+                   (_protoAsText[start - 1] & NChars.NewLine) != 0)
             {
                 start--;
             }
