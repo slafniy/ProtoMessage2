@@ -7,8 +7,8 @@ namespace ProtoMessageOriginal
 
     public class ProtoMessage4 : IProtoMessage<ProtoMessage4>
     {
-        private List<(LazyString, LazyString)> _attributes = new List<(LazyString, LazyString)>();
-        private List<(LazyString, ProtoMessage4)> _subMessages = new List<(LazyString, ProtoMessage4)>();
+        private List<LazyStringTuple> _attributes = new List<LazyStringTuple>();
+        private List<LazyStringProtoMessage4Tuple> _subMessages = new List<LazyStringProtoMessage4Tuple>();
 
         private string _protoAsText;
 
@@ -19,6 +19,31 @@ namespace ProtoMessageOriginal
         public ProtoMessage4(string protoAsText)
         {
             _protoAsText = protoAsText;
+        }
+
+        private struct LazyStringTuple
+        {
+            public readonly LazyString Item1;
+            public readonly LazyString Item2;
+
+            public LazyStringTuple(LazyString item1, LazyString item2)
+            {
+                Item1 = item1;
+                Item2 = item2;
+            }
+        }
+
+
+        private struct LazyStringProtoMessage4Tuple
+        {
+            public readonly LazyString Item1;
+            public readonly ProtoMessage4 Item2;
+
+            public LazyStringProtoMessage4Tuple(LazyString item1, ProtoMessage4 item2)
+            {
+                Item1 = item1;
+                Item2 = item2;
+            }
         }
 
         private struct LazyString
@@ -51,8 +76,8 @@ namespace ProtoMessageOriginal
             Stack<ProtoMessage4> messagesStack = new Stack<ProtoMessage4>();
             var currentProtoMessage = this;
 
-            List<(LazyString, LazyString)> currentMessageAttributes = currentProtoMessage._attributes;
-            List<(LazyString, ProtoMessage4)> currentMessagSubMessages = currentProtoMessage._subMessages;
+            List<LazyStringTuple> currentMessageAttributes = currentProtoMessage._attributes;
+            List<LazyStringProtoMessage4Tuple> currentMessagSubMessages = currentProtoMessage._subMessages;
 
             var elementNameStartPosition = 0;
 
@@ -64,7 +89,7 @@ namespace ProtoMessageOriginal
             char char1;
 
             int isLineStart = 0;
-            bool attributeValue = false;
+            int attributeValue = 1;
 
             var spaceMask = ~' ';
 
@@ -72,63 +97,73 @@ namespace ProtoMessageOriginal
             {
                 char1 = protoAsText[i];
 
-                if (!attributeValue)
+                switch ((attributeValue << 17) | char1)
                 {
-                    if (char1 == ' ' && isLineStart == 0)
-                    {
-                        attributeNameStartPosition = i + 1;
-                        elementNameStartPosition = i + 1;
+                    // ' '				(attributeValue << 17) |' '	131104	int
+                    case 131104:
+                        if (isLineStart == 0)
+                        {
+                            attributeNameStartPosition = i + 1;
+                            elementNameStartPosition = i + 1;
+                        }
+                        break;
 
-                        continue;
-                    }
-                    if (char1 == ':')
-                    {
+                    // ':'		(attributeValue << 17) |':'	131130	int
+                    case 131130:
                         attributeName = new LazyString(attributeNameStartPosition, i);
 
                         attributeValueStartPosition = i + 1;
-                        attributeValue = true;
+                        attributeValue = 0;
 
-                        continue;
-                    }
-                    if (char1 == '{')
-                    {
+                        isLineStart = char1 & spaceMask;
+                        break;
+
+                    // '{'		(attributeValue << 17) | '{'	131195	int
+                    case 131195:
                         messagesStack.Push(currentProtoMessage);
                         currentProtoMessage = new ProtoMessage4(protoAsText);
-                        currentMessagSubMessages.Add((
+                        currentMessagSubMessages.Add(new LazyStringProtoMessage4Tuple(
                             new LazyString(elementNameStartPosition, i - 1),
                             currentProtoMessage));
 
                         currentMessageAttributes = currentProtoMessage._attributes;
                         currentMessagSubMessages = currentProtoMessage._subMessages;
 
-                        continue;
-                    }
-                    if (char1 == '}')
-                    {
+                        isLineStart = char1 & spaceMask;
+                        break;
+
+                    // '}' 		(attributeValue << 17) | '}'	131197	int
+                    case 131197:
                         currentProtoMessage = messagesStack.Pop();
                         currentMessageAttributes = currentProtoMessage._attributes;
                         currentMessagSubMessages = currentProtoMessage._subMessages;
 
-                        continue;
-                    }
+                        isLineStart = char1 & spaceMask;
+                        break;
 
-                    isLineStart = char1 & spaceMask;
+                    // '\n' 		10
+                    // '\n' 		(attributeValue << 17) | '\n'	131082	int
+                    case 10:
+                    case 131082:
+                        if (!attributeName.isEqual(LazyString.Empty))
+                        {
+                            currentMessageAttributes.Add(new LazyStringTuple(attributeName, new LazyString(attributeValueStartPosition, i)));
+                            attributeName = LazyString.Empty;
+                        }
+
+                        attributeNameStartPosition = i + 1;
+                        elementNameStartPosition = i + 1;
+
+                        isLineStart = 0;
+                        attributeValue = 1;
+
+                        break;
+                    default:
+
+                        isLineStart = char1 & spaceMask;
+                        break;
                 }
 
-                if (char1 == '\n')
-                {
-                    if (!attributeName.isEqual(LazyString.Empty))
-                    {
-                        currentMessageAttributes.Add((attributeName, new LazyString(attributeValueStartPosition, i)));
-                        attributeName = LazyString.Empty;
-                    }
-
-                    attributeNameStartPosition = i + 1;
-                    elementNameStartPosition = i + 1;
-
-                    isLineStart = 0;
-                    attributeValue = false;
-                }
             }
         }
 
@@ -154,11 +189,16 @@ namespace ProtoMessageOriginal
 
             int start = lazyString._indexStart + 1; // skip whitespace
 
-            var value = _protoAsText.Substring(start, lazyString._indexEnd - start);
-            if (value[0] == '"')
+            string value;
+            if (_protoAsText[start] == '"')
             {
-                value = value.Substring(1, value.Length - 2);
+                value = _protoAsText.Substring(start + 1, lazyString._indexEnd - start - 2);
             }
+            else
+            {
+                value = _protoAsText.Substring(start, lazyString._indexEnd - start);
+            }
+
             lazyString.Value = value;
             return value;
         }
@@ -248,7 +288,7 @@ namespace ProtoMessageOriginal
 
         public string GetAttribute(string name)
         {
-            for(int i = 0; i < _attributes.Count; i++)
+            for (int i = 0; i < _attributes.Count; i++)
             {
                 var attribute = _attributes[i];
                 if (AreEqual(attribute.Item1, name))
@@ -263,7 +303,7 @@ namespace ProtoMessageOriginal
         {
             var res = new List<string>();
 
-            void GetSubMessages(List<(LazyString, ProtoMessage4)> messages)
+            void GetSubMessages(List<LazyStringProtoMessage4Tuple> messages)
             {
                 foreach (var msg in messages)
                 {
