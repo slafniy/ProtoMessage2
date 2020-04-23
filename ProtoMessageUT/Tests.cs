@@ -23,6 +23,8 @@ namespace ProtoMessageUT
 
         private static readonly (string, string) RootAttribute1 = ("root_attr_1", "root_attr_1_val");
         private static readonly (string, string) RootAttribute2 = ("root_attr_2", "21342345");
+        private static readonly (string, string) RootAttributeLast1 = ("root_attr_last_1", "21342345");
+        private static readonly (string, string) RootAttributeLast2 = ("root_attr_last_2", "last_sting_attr");
 
         private static readonly (string, string) RootMsg2Attr = ("dirty_string", 
             " ha-ha TAKE THIS: \"quoted!\" and this: { } { { { }} hope your code died here ");
@@ -47,18 +49,26 @@ namespace ProtoMessageUT
             + "}\n" +
             $"{RootMessage2} {{\n"
             + $"  {RootMsg2Attr.Item1}: \"{RootMsg2Attr.Item2}\"\n"
-            + "}\n";
+            + "}\n"
+            + $"{RootAttributeLast1.Item1}: {RootAttributeLast1.Item2}\n"
+            + $"{RootAttributeLast2.Item1}: \"{RootAttributeLast2.Item2}\"\n";
 
         private void ProtoParse<T>() where T : IProtoMessage<T>, new()
         {
             var pm = new T();
             pm.Parse(_protoText);
+            Assert.AreEqual(RootAttribute1.Item2, pm.GetAttribute(RootAttribute1.Item1));
+            Assert.AreEqual(RootAttribute2.Item2, pm.GetAttribute(RootAttribute2.Item1));
+            Assert.AreEqual(RootAttributeLast1.Item2, pm.GetAttribute(RootAttributeLast1.Item1));
+            Assert.AreEqual(RootAttributeLast2.Item2, pm.GetAttribute(RootAttributeLast2.Item1));
 
             Assert.AreEqual(new List<T>(), pm.GetElementList(NotExistingMessage));
             Assert.AreEqual(new List<string>(), pm.GetAttributeList(NotExistingMessage));
 
             T rootMsg = pm.GetElement(RootMessage);
             Assert.IsNotNull(rootMsg);
+
+
             Assert.Contains(RootMessage, pm.GetKeys());
             Assert.Contains(RootMessage2, pm.GetKeys());
             Assert.AreEqual(4, pm.GetKeys().Count);

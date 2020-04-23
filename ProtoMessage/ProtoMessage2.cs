@@ -54,10 +54,8 @@ namespace ProtoMessageOriginal
                 nameIdx--;
             }
 
-            attrIdx--;
-            bool res = attrIdx < 0 || (_protoAsText[attrIdx] & NChars.Space) == 0 ||
+            return attrIdx < 0 || (_protoAsText[attrIdx] & NChars.Space) == 0 ||
                        (_protoAsText[attrIdx] & NChars.NewLine) == 0;
-            return res;
         }
 
         private string ParseAttributeValue()
