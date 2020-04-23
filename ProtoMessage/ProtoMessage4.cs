@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace ProtoMessageOriginal
+namespace ProtoMessage
 {
 
     public class ProtoMessage4 : IProtoMessage<ProtoMessage4>

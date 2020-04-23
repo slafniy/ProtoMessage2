@@ -1,78 +1,248 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
+using System.Runtime.CompilerServices;
 
-namespace ProtoMessageOriginal
+namespace ProtoMessage
 {
-    public interface IProtoMessage<TType> where TType : IProtoMessage<TType>, new()
+    // Chars bitwise negatives
+    public static class NChars
     {
-        List<TType> GetElementList(string name);
-        TType GetElement(string name);
-        List<string> GetAttributeList(string name);
-        T GetAttribute<T>(string name) where T : struct;
-        T? GetAttributeOrNull<T>(string name) where T : struct;
-        string GetAttribute(string name);
-        void Parse(string text);
-        List<string> GetKeys();
+        public const int Space = ~' ';
+        public const int NewLine = ~'\n';
+        public const int Quote = ~'"';
+    }
+
+    public struct Attribute
+    {
+        private readonly int _index; // global "position" in text, '{' for message and ':' for attribute
+        private readonly int? _level; // increases on each '{' decreases on each '}'
+        public string Value => _value ?? ParseAttributeValue();
+        private string? _value;
+        private readonly string _protoAsText;
+
+        public Attribute(int index, int? level, string protoAsText)
+        {
+            _index = index;
+            _level = level;
+            _value = null;
+            _protoAsText = protoAsText;
+        }
+
+        // For debug purposes
+        public override string ToString()
+        {
+            return $"Index: {_index} Level: {_level} ";
+        }
+
+        
+        public bool CheckName(string name)
+        {
+            return ProtoMessage.CheckName(name, _index, 1 /* skip colon */, _protoAsText);
+        }
+
+        private string ParseAttributeValue()
+        {
+            int index = _index;
+            int start = index + 2; // skip whitespace
+            while (index < _protoAsText.Length && (_protoAsText[index] & NChars.NewLine) != 0)
+            {
+                index++;
+            }
+
+            // This works faster than .Trim()
+            if ((_protoAsText[start] & NChars.Quote) == 0)
+            {
+                start++;
+                index--;
+            }
+
+            _value = _protoAsText.Substring(start, index - start);
+            return _value;
+        }
+    }
+
+
+    public struct SubMessage
+    {
+        private readonly int _index; // global "position" in text, index of '{' symbol
+        public readonly int? Level; // How deep this message is. (increases on each '{' decreases on each '}')
+        public readonly List<int> ChildIndexes; // sub-message indexes in sub-messages matrix
+        public readonly List<int> AttributeIndexes; // attribute indexes in attributes matrix
+        public string? Name => _name ?? ParseName();
+        private string? _name;
+        private readonly string _protoAsText;
+
+        public SubMessage(int index, int? level, string protoAsText)
+        {
+            _index = index;
+            Level = level;
+            ChildIndexes = new List<int>();
+            AttributeIndexes = new List<int>();
+            _name = null;
+            _protoAsText = protoAsText;
+        }
+
+        // For debug purposes
+        public override string ToString()
+        {
+            return $"Index: {_index} Level: {Level} " +
+                   $"ChildIndexes: {string.Join(", ", ChildIndexes)} " +
+                   $"AttributeIndexes: {string.Join(", ", AttributeIndexes)}";
+        }
+        
+        public bool CheckName(string name)
+        {
+            return ProtoMessage.CheckName(name, _index, 2 /* skip '{' and whitespace */, _protoAsText);
+        }
+
+        private string ParseName()
+        {
+            int idx = _index;
+            // Look backward for newline or message beginning
+            int start = idx -= 1; // skip whitespace for message or colon for attribute
+            while (start > 0 && (_protoAsText[start - 1] & NChars.Space) != 0 &&
+                   (_protoAsText[start - 1] & NChars.NewLine) != 0)
+            {
+                start--;
+            }
+
+            _name = _protoAsText.Substring(start, idx - start);
+            return _name;
+        }
     }
 
     public class ProtoMessage : IProtoMessage<ProtoMessage>
     {
-        private readonly List<string> _text = new List<string>();
-        private readonly Dictionary<char, List<string>> _mNonParsedAttributes = new Dictionary<char, List<string>>();
-        private readonly Dictionary<string, List<string>> _mAttributes = new Dictionary<string, List<string>>();
-        private readonly List<string> _mKeys = new List<string>();
+        // These fields are same for every sub-ProtoMessage
+        private readonly List<SubMessage> _subMessagesMatrix = new List<SubMessage>(); // all levels sub-messages
+        private Attribute[] _matrixAttributes; // all levels attributes
+        private string _protoAsText; // original input string
 
-        private readonly Dictionary<string, List<ProtoMessage>> _mElements =
-            new Dictionary<string, List<ProtoMessage>>();
+        // These fields determine particular (sub) ProtoMessage instance
+        private readonly int _level = 1; // how deep this message is  TODO: probably needed only for GetKeys()
+        private readonly int _indexInMatrix; // where in the common matrix is this message data
 
-        private List<string> _nonParsedList;
-        private List<string> _outList; // just lists for different processes with TryGetValue
-        private List<ProtoMessage> _protoList;
+        // Called only to return submessage TODO: maybe it would be better to have xPath-like access?
+        private ProtoMessage(List<SubMessage> matrix, ref Attribute[] attrMatrix, int level, string protoAsText,
+            int indexInMatrix)
+        {
+            _subMessagesMatrix = matrix;
+            _matrixAttributes = attrMatrix;
+            _protoAsText = protoAsText;
+            _level = level;
+            _indexInMatrix = indexInMatrix;
+        }
+
+        // Do not save the result! Substring is too slow!
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]  // saves about 2.8% parsing time
+        public static bool CheckName(string name, int initialPosition, int howMuchSkip, string protoAsText)
+        {
+            int nameIdx = name.Length - 1; // the end of the name
+            initialPosition -= howMuchSkip; // skip '{' and whitespace
+
+            // Look backward for newline or message beginning
+            while (nameIdx >= 0)
+            {
+                if (name[nameIdx] != protoAsText[initialPosition])
+                {
+                    return false;
+                }
+
+                initialPosition--;
+                nameIdx--;
+            }
+
+            return initialPosition < 0 || (protoAsText[initialPosition] & NChars.Space) == 0 ||
+                   (protoAsText[initialPosition] & NChars.NewLine) == 0;
+        }
+        
+        // Should be called once after instance creation
+        public void Parse(string protoAsText)
+        {
+            _protoAsText = protoAsText;
+            _matrixAttributes = new Attribute[_protoAsText.Length / 5]; // minimal possible attribute has 5 chars
+            _subMessagesMatrix.Add(new SubMessage(0, null, protoAsText)); // contains possible several 0-level messages
+
+            int currentAttributeIndex = 0;
+            int currentLevel = 0;
+            bool isPreviousColon = false; // to process colons inside attribute values
+
+            var currentParentMessages = new Stack<int>(); //  saves parent messages (their indexes in matrix)
+            currentParentMessages.Push(0);
+
+            for (int i = 0; i < _protoAsText.Length; i++)
+            {
+                char c = _protoAsText[i];
+                switch (c)
+                {
+                    case ':' when !isPreviousColon:
+                        _matrixAttributes[currentAttributeIndex] = new Attribute(i, currentLevel, _protoAsText);
+                        _subMessagesMatrix[currentParentMessages.Peek()].AttributeIndexes.Add(currentAttributeIndex);
+                        currentAttributeIndex++;
+                        isPreviousColon = true;
+                        break;
+                    case '{' when !isPreviousColon:
+                        currentLevel++;
+                        _subMessagesMatrix.Add(new SubMessage(i, currentLevel, _protoAsText));
+                        _subMessagesMatrix[currentParentMessages.Peek()].ChildIndexes.Add(_subMessagesMatrix.Count - 1);
+                        currentParentMessages.Push(_subMessagesMatrix.Count - 1);
+                        break;
+                    case '}' when !isPreviousColon:
+                        currentLevel--;
+                        currentParentMessages.Pop();
+                        break;
+                    case '\n':
+                        isPreviousColon = false;
+                        break;
+                }
+            }
+        }
+
+        public ProtoMessage()
+        {
+        }
+
+        public List<ProtoMessage> GetElementList(string name)
+        {
+            var res = new List<ProtoMessage>();
+            foreach (int idx in _subMessagesMatrix[_indexInMatrix].ChildIndexes)
+            {
+                if (_subMessagesMatrix[idx].CheckName(name))
+                {
+                    res.Add(new ProtoMessage(_subMessagesMatrix, ref _matrixAttributes, _level + 1, _protoAsText,
+                        idx));
+                }
+            }
+
+            return res;
+        }
+
+        public ProtoMessage GetElement(string name)
+        {
+            foreach (int idx in _subMessagesMatrix[_indexInMatrix].ChildIndexes)
+            {
+                if (_subMessagesMatrix[idx].CheckName(name))
+                {
+                    return new ProtoMessage(_subMessagesMatrix, ref _matrixAttributes, _level + 1, _protoAsText, idx);
+                }
+            }
+
+            return null;
+        }
 
         public List<string> GetAttributeList(string name)
         {
-            if (_text.Count != 0)
+            var res = new List<string>();
+            foreach (int i in _subMessagesMatrix[_indexInMatrix].AttributeIndexes)
             {
-                ParseMessageBody(_text.ToArray());
-                _text.Clear();
+                if (_matrixAttributes[i].CheckName(name))
+                {
+                    res.Add(_matrixAttributes[i].Value);
+                }
             }
 
-            if (_mAttributes.TryGetValue(name, out _outList))
-            {
-                return _mAttributes.TryGetValue(name, out _outList) ? _outList : new List<string>();
-            }
-
-            var attributes = ParseAndReturnAttributes(name);
-            _mAttributes[name] = attributes;
-
-            return _mAttributes.TryGetValue(name, out _outList) ? _outList : new List<string>();
-        }
-
-        private List<string> ParseAndReturnAttributes(string name)
-        {
-            char firstChar = name[0];
-            if (!_mNonParsedAttributes.TryGetValue(firstChar, out _nonParsedList))
-            {
-                return new List<string>();
-            }
-
-            string[] nonParsedAttributes = _nonParsedList.Where(
-                a => a.Length > name.Length + 2 && a.Substring(0, name.Length) == name).ToArray();
-
-            _outList = new List<string>();
-            for (int i = nonParsedAttributes.Length - 1; i > -1; i--)
-            {
-                string nonParsedAttribute = nonParsedAttributes[i];
-                string attribute = parseAttribute(nonParsedAttribute, name.Length);
-                _nonParsedList.Remove(nonParsedAttribute);
-                _outList.Add(attribute);
-            }
-
-            _outList.Reverse();
-            _mAttributes.Add(name, _outList);
-            return _outList;
+            return res;
         }
 
         public T GetAttribute<T>(string name) where T : struct
@@ -81,6 +251,7 @@ namespace ProtoMessageOriginal
             return (T) Convert.ChangeType(attr, typeof(T), CultureInfo.InvariantCulture);
         }
 
+        // TODO: remove? It looks same as GetAttribute() when using nullable reference types
         public T? GetAttributeOrNull<T>(string name) where T : struct
         {
             string attr = GetAttribute(name);
@@ -88,132 +259,35 @@ namespace ProtoMessageOriginal
             {
                 return null;
             }
-
             return (T) Convert.ChangeType(attr, typeof(T), CultureInfo.InvariantCulture);
         }
 
-
         public string GetAttribute(string name)
         {
-            if (_mAttributes.TryGetValue(name, out _outList))
+            foreach (int idx in _subMessagesMatrix[_indexInMatrix].AttributeIndexes)
             {
-                return _outList.Count > 0 ? _outList[0] : null;
-            }
-
-            if (_text.Count != 0)
-            {
-                ParseMessageBody(_text.ToArray());
-                _text.Clear();
-            }
-
-            if (!_mNonParsedAttributes.TryGetValue(name[0], out _outList))
-            {
-                return null;
-            }
-
-            var attr = parseAttribute(_outList.Find(a => a.Length > name.Length + 2 &&
-                                                         a.Substring(0, name.Length) == name), name.Length);
-
-            _mNonParsedAttributes[name[0]].Remove(attr);
-            _mAttributes.Add(name, new List<string> {attr});
-            return attr;
-        }
-
-        private string parseAttribute(string nonParsedAttribute, int idx)
-        {
-            if (nonParsedAttribute == null)
-            {
-                return null;
-            }
-
-            idx += 2;
-
-            return nonParsedAttribute[idx] == '\"'
-                ? nonParsedAttribute.Substring(idx + 1, nonParsedAttribute.Length - idx - 2)
-                : nonParsedAttribute.Substring(idx, nonParsedAttribute.Length - idx);
-        }
-
-        public List<ProtoMessage> GetElementList(string name)
-        {
-            if (_text.Count != 0)
-            {
-                ParseMessageBody(_text.ToArray());
-                _text.Clear();
-            }
-
-            if (_mElements.TryGetValue(name, out _protoList))
-            {
-                return _protoList;
-            }
-
-            return new List<ProtoMessage>();
-        }
-
-        public ProtoMessage GetElement(string name)
-        {
-            _protoList = GetElementList(name);
-            return _protoList.Count > 0 ? _protoList[0] : null;
-        }
-
-        public List<string> GetKeys()
-        {
-            return _mKeys;
-        }
-
-        public void Parse(string text)
-        {
-            ParseMessageBody(text.Split('\n'));
-        }
-
-
-        private void ParseMessageBody(string[] lines)
-        {
-            var isTopLevel = false; // level 0 
-            var protoName = string.Empty;
-            var otherProto = new ProtoMessage(); // ProtoMessage level > 0
-
-            foreach (string line in lines.Where(l => l != "")) // last line == "", when parse "msg" attribute
-            {
-                if (line.Length == 1) // where line == "}" (first level, without spaces)
+                if (_matrixAttributes[idx].CheckName(name))
                 {
-                    isTopLevel = false;
-                    if (!_mElements.ContainsKey(protoName))
-                    {
-                        _mElements.Add(protoName, new List<ProtoMessage>());
-                    }
-
-                    _mElements[protoName].Add(otherProto);
-                    otherProto = new ProtoMessage();
-                    continue;
-                }
-
-                if (isTopLevel) // if level > 0
-                {
-                    otherProto._text.Add(line.Substring(2));
-                    if (line[line.Length - 1] == '{') // start of the element
-                    {
-                        _mKeys.Add(line.Substring(0, line.Length - 2).Trim());
-                    }
-                }
-                else // if level == 0
-                {
-                    if (line[line.Length - 1] == '{') // start of the element
-                    {
-                        protoName = line.Substring(0, line.Length - 2).Trim(); // without " {"
-                        isTopLevel = true;
-                        _mKeys.Add(protoName);
-                    }
-                    else // attribute
-                    {
-                        if (!_mNonParsedAttributes.ContainsKey(line[0]))
-                        {
-                            _mNonParsedAttributes.Add(line[0], new List<string>());
-                        }
-
-                        _mNonParsedAttributes[line[0]].Add(line);
-                    }
+                    return _matrixAttributes[idx].Value;
                 }
             }
+
+            return null;
+        }
+
+        public List<string> GetKeys() // TODO: check usage. I doubt it really should return a LIST of ALL sub messages 
+        {
+            var res = new List<string>();
+
+            foreach (SubMessage el in _subMessagesMatrix)
+            {
+                if (el.Level >= _level)
+                {
+                    res.Add(el.Name);
+                }
+            }
+
+            return res;
         }
     }
 }

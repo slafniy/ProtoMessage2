@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading;
-using ProtoMessageOriginal;
+using ProtoMessage;
 using NUnit.Framework;
 
 namespace ProtoMessageBench
@@ -143,17 +143,17 @@ namespace ProtoMessageBench
 
             switch (args.Length > 1 ? args[1] : "")
             {
-                case "0":
-                    JustParse<ProtoMessage>(uint.Parse(args[0]), testData);
-                    PartialRead<ProtoMessage>(uint.Parse(args[0]), testData);
-                    ReadAll<ProtoMessage>(uint.Parse(args[0]), testData);
+                case "ProtoMessageOld":
+                    JustParse<ProtoMessageOld>(uint.Parse(args[0]), testData);
+                    PartialRead<ProtoMessageOld>(uint.Parse(args[0]), testData);
+                    ReadAll<ProtoMessageOld>(uint.Parse(args[0]), testData);
                     break;
-                case "2":
-                    JustParse<ProtoMessage2>(uint.Parse(args[0]), testData);
-                    PartialRead<ProtoMessage2>(uint.Parse(args[0]), testData);
-                    ReadAll<ProtoMessage2>(uint.Parse(args[0]), testData);
+                case "ProtoMessage":
+                    JustParse<ProtoMessage.ProtoMessage>(uint.Parse(args[0]), testData);
+                    PartialRead<ProtoMessage.ProtoMessage>(uint.Parse(args[0]), testData);
+                    ReadAll<ProtoMessage.ProtoMessage>(uint.Parse(args[0]), testData);
                     break;
-                case "4":
+                case "ProtoMessage4":
                     JustParse<ProtoMessage4>(uint.Parse(args[0]), testData);
                     PartialRead<ProtoMessage4>(uint.Parse(args[0]), testData);
                     ReadAll<ProtoMessage4>(uint.Parse(args[0]), testData);

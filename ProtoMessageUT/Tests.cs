@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
-using ProtoMessageOriginal;
+using ProtoMessage;
 
 namespace ProtoMessageUT
 {
@@ -97,13 +97,13 @@ namespace ProtoMessageUT
         [Test]
         public void ProtoMessage()
         {
-            ProtoParse<ProtoMessage>();
+            ProtoParse<ProtoMessageOld>();
         }
 
         [Test]
         public void ProtoMessage2()
         {
-            ProtoParse<ProtoMessage2>();
+            ProtoParse<ProtoMessage.ProtoMessage>();
         }
 
         [Test]
