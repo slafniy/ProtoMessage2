@@ -38,7 +38,6 @@
     <Compile Include="IProtoMessage.cs" />
     <Compile Include="ProtoMessage.cs" />
     <Compile Include="ProtoMessage4.cs" />
-    <Compile Include="ProtoMessageOld.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties" />

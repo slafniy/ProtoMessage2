@@ -4,7 +4,6 @@ using System.Globalization;
 
 namespace ProtoMessage
 {
-
     public class ProtoMessage4 : IProtoMessage<ProtoMessage4>
     {
         private List<LazyStringTuple> _attributes = new List<LazyStringTuple>();
@@ -106,6 +105,7 @@ namespace ProtoMessage
                             attributeNameStartPosition = i + 1;
                             elementNameStartPosition = i + 1;
                         }
+
                         break;
 
                     // ':'		(attributeValue << 17) |':'	131130	int
@@ -147,7 +147,8 @@ namespace ProtoMessage
                     case 131082:
                         if (!attributeName.isEqual(LazyString.Empty))
                         {
-                            currentMessageAttributes.Add(new LazyStringTuple(attributeName, new LazyString(attributeValueStartPosition, i)));
+                            currentMessageAttributes.Add(new LazyStringTuple(attributeName,
+                                new LazyString(attributeValueStartPosition, i)));
                             attributeName = LazyString.Empty;
                         }
 
@@ -163,8 +164,12 @@ namespace ProtoMessage
                         isLineStart = char1 & spaceMask;
                         break;
                 }
-
             }
+        }
+
+        public bool HasKey(string name)
+        {
+            throw new NotImplementedException();
         }
 
         private string ParseLazyStringValue(LazyString lazyString)
@@ -239,6 +244,7 @@ namespace ProtoMessage
                     res.Add(subMessages.Item2);
                 }
             }
+
             return res;
         }
 
@@ -252,6 +258,7 @@ namespace ProtoMessage
                     return subMessages.Item2;
                 }
             }
+
             return null;
         }
 
@@ -266,13 +273,14 @@ namespace ProtoMessage
                     res.Add(ParseAttributeValue(attribute.Item2));
                 }
             }
+
             return res;
         }
 
         public T GetAttribute<T>(string name) where T : struct
         {
             string attr = GetAttribute(name);
-            return (T)Convert.ChangeType(attr, typeof(T), CultureInfo.InvariantCulture);
+            return (T) Convert.ChangeType(attr, typeof(T), CultureInfo.InvariantCulture);
         }
 
         public T? GetAttributeOrNull<T>(string name) where T : struct
@@ -283,7 +291,7 @@ namespace ProtoMessage
                 return null;
             }
 
-            return (T)Convert.ChangeType(attr, typeof(T), CultureInfo.InvariantCulture);
+            return (T) Convert.ChangeType(attr, typeof(T), CultureInfo.InvariantCulture);
         }
 
         public string GetAttribute(string name)
@@ -296,25 +304,11 @@ namespace ProtoMessage
                     return ParseAttributeValue(attribute.Item2);
                 }
             }
+
             return null;
         }
 
-        public List<string> GetKeys()
-        {
-            var res = new List<string>();
 
-            void GetSubMessages(List<LazyStringProtoMessage4Tuple> messages)
-            {
-                foreach (var msg in messages)
-                {
-                    res.Add(ParseLazyStringValue(msg.Item1));
-                    GetSubMessages(msg.Item2._subMessages);
-                }
-            }
-
-            GetSubMessages(_subMessages);
-
-            return res;
-        }
+        public List<string> Keys => throw new NotImplementedException();
     }
 }

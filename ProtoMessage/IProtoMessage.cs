@@ -11,6 +11,7 @@ namespace ProtoMessage
         T? GetAttributeOrNull<T>(string name) where T : struct;
         string GetAttribute(string name);
         void Parse(string text);
-        List<string> GetKeys();
+        bool HasKey(string name);
+        List<string> Keys { get; }
     }
 }

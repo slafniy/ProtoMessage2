@@ -37,7 +37,7 @@ namespace ProtoMessageBench
                 var protoMessage = new T();
                 protoMessage.Parse(protoAsText);
 
-                List<string> keys = protoMessage.GetKeys();
+                List<string> keys = protoMessage.Keys;
                 T lvlZeroMsg = protoMessage.GetElement("type1_message_level_zero");
                 T lvlOneMsg = lvlZeroMsg.GetElement("message_level_one");
                 T lvlTwoMsg = lvlOneMsg.GetElement("message_level_two");
@@ -59,7 +59,7 @@ namespace ProtoMessageBench
                 lvlTwoMsg.GetAttribute("what_to");
                 lvlTwoMsg.GetAttribute("write_here");
                 string lvlOneBool = lvlOneMsg.GetAttribute("and_boolean_in_the_end");
-                string? needToWriteAttr = null;
+                string needToWriteAttr = null;
 
                 foreach (T msg in lvlThreeMessages)
                 {
@@ -81,7 +81,7 @@ namespace ProtoMessageBench
                     continue;
                 }
 
-                Assert.AreEqual(13, keys.Count);
+                Assert.AreEqual(1, keys.Count);
                 Assert.IsNotEmpty(lvlThreeMessages);
                 Assert.AreEqual(28, zeroIds.Count);
                 Assert.AreEqual("666", zeroIds[20]);
@@ -143,11 +143,6 @@ namespace ProtoMessageBench
 
             switch (args.Length > 1 ? args[1] : "")
             {
-                case "ProtoMessageOld":
-                    JustParse<ProtoMessageOld>(uint.Parse(args[0]), testData);
-                    PartialRead<ProtoMessageOld>(uint.Parse(args[0]), testData);
-                    ReadAll<ProtoMessageOld>(uint.Parse(args[0]), testData);
-                    break;
                 case "ProtoMessage":
                     JustParse<ProtoMessage.ProtoMessage>(uint.Parse(args[0]), testData);
                     PartialRead<ProtoMessage.ProtoMessage>(uint.Parse(args[0]), testData);
