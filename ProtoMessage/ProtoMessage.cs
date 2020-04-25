@@ -144,35 +144,16 @@ namespace ProtoMessage
             return initialPosition < 0 || (protoAsText[initialPosition] & NChars.Space) == 0 ||
                    (protoAsText[initialPosition] & NChars.NewLine) == 0;
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ProcessColon(ref int currentAttributeIndex, int i, Stack<int> currentParentMessages, 
-            ref bool isPreviousColon)
-        {
-            _attributesMatrix[currentAttributeIndex] = new Attribute(i, _protoAsText);
-            _subMessagesMatrix[currentParentMessages.Peek()].AttributeIndexes.Add(currentAttributeIndex);
-            currentAttributeIndex++;
-            isPreviousColon = true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ProcessOpenBrace(int i, Stack<int> currentParentMessages)
-        {
-            _subMessagesMatrix.Add(new SubMessage(i, _protoAsText));
-            _subMessagesMatrix[currentParentMessages.Peek()].ChildIndexes.Add(_subMessagesMatrix.Count - 1);
-            currentParentMessages.Push(_subMessagesMatrix.Count - 1);
-        }
         
-
         // Should be called once after instance creation
         public void Parse(string protoAsText)
         {
             _protoAsText = protoAsText;
-            _attributesMatrix = new Attribute[_protoAsText.Length / 5];  // minimal possible attribute has 5 chars
+            _attributesMatrix = new Attribute[_protoAsText.Length / 5]; // minimal possible attribute has 5 chars
             _subMessagesMatrix.Add(new SubMessage(0, protoAsText)); // root message that contains 0-level messages
 
             int currentAttributeIndex = 0;
-            bool isPreviousColon = false; // to process colons inside attribute values
+            int notPreviousColon = 1; // to process colons inside attribute values
 
             var currentParentMessages = new Stack<int>(); // temporary saves parent message indexes
             currentParentMessages.Push(0);
@@ -180,24 +161,25 @@ namespace ProtoMessage
             // iterate the input text only once and save all control symbol positions
             for (int i = 0; i < _protoAsText.Length; i++)
             {
-                switch (isPreviousColon)
+                switch ((notPreviousColon << 17) | _protoAsText[i])
                 {
-                    case false:
-                        switch (_protoAsText[i])
-                        {
-                            case ':':
-                                ProcessColon(ref currentAttributeIndex, i, currentParentMessages, ref isPreviousColon);
-                                break;
-                            case '{':
-                                ProcessOpenBrace(i, currentParentMessages);
-                                break;
-                            case '}':
-                                currentParentMessages.Pop();
-                                break;
-                        }
+                    case 131130: // (attributeValue << 17) | ':'	131130	int
+                        _attributesMatrix[currentAttributeIndex] = new Attribute(i, _protoAsText);
+                        _subMessagesMatrix[currentParentMessages.Peek()].AttributeIndexes.Add(currentAttributeIndex);
+                        currentAttributeIndex++;
+                        notPreviousColon = 0;
                         break;
-                    case true:
-                        isPreviousColon = _protoAsText[i] != '\n';
+                    case 131195: // (attributeValue << 17) | '{'	131195	int
+                        _subMessagesMatrix.Add(new SubMessage(i, _protoAsText));
+                        _subMessagesMatrix[currentParentMessages.Peek()].ChildIndexes.Add(_subMessagesMatrix.Count - 1);
+                        currentParentMessages.Push(_subMessagesMatrix.Count - 1);
+                        break;
+                    case 131197: // (attributeValue << 17) | '}'	131197	int
+                        currentParentMessages.Pop();
+                        break;
+                    case 10: // (attributeValue << 17) | '\n'	131082	int OR 10
+                    case 131082:
+                        notPreviousColon = 1;
                         break;
                 }
             }
