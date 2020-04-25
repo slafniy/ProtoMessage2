@@ -144,6 +144,36 @@ namespace ProtoMessage
                    (protoAsText[initialPosition] & NChars.NewLine) == 0;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ProcessColon(ref int currentAttributeIndex, int i, Stack<int> currentParentMessages, 
+            ref bool isPreviousColon)
+        {
+            _attributesMatrix[currentAttributeIndex] = new Attribute(i, _protoAsText);
+            _subMessagesMatrix[currentParentMessages.Peek()].AttributeIndexes.Add(currentAttributeIndex);
+            currentAttributeIndex++;
+            isPreviousColon = true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ProcessOpenBrace(int i, Stack<int> currentParentMessages)
+        {
+            _subMessagesMatrix.Add(new SubMessage(i, _protoAsText));
+            _subMessagesMatrix[currentParentMessages.Peek()].ChildIndexes.Add(_subMessagesMatrix.Count - 1);
+            currentParentMessages.Push(_subMessagesMatrix.Count - 1);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ProcessCloseBrace(Stack<int> currentParentMessages)
+        {
+            currentParentMessages.Pop();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ProcessNewLine(ref bool isPreviousColon)
+        {
+            isPreviousColon = false;
+        }
+
         // Should be called once after instance creation
         public void Parse(string protoAsText)
         {
@@ -165,21 +195,16 @@ namespace ProtoMessage
                 switch (c)
                 {
                     case ':' when !isPreviousColon:
-                        _attributesMatrix[currentAttributeIndex] = new Attribute(i, _protoAsText);
-                        _subMessagesMatrix[currentParentMessages.Peek()].AttributeIndexes.Add(currentAttributeIndex);
-                        currentAttributeIndex++;
-                        isPreviousColon = true;
+                        ProcessColon(ref currentAttributeIndex, i, currentParentMessages, ref isPreviousColon);
                         break;
                     case '{' when !isPreviousColon:
-                        _subMessagesMatrix.Add(new SubMessage(i, _protoAsText));
-                        _subMessagesMatrix[currentParentMessages.Peek()].ChildIndexes.Add(_subMessagesMatrix.Count - 1);
-                        currentParentMessages.Push(_subMessagesMatrix.Count - 1);
+                        ProcessOpenBrace(i, currentParentMessages);
                         break;
                     case '}' when !isPreviousColon:
-                        currentParentMessages.Pop();
+                        ProcessCloseBrace(currentParentMessages);
                         break;
                     case '\n':
-                        isPreviousColon = false;
+                        ProcessNewLine(ref isPreviousColon);
                         break;
                 }
             }
