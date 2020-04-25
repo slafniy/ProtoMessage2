@@ -59,9 +59,8 @@ namespace ProtoMessageUT
             + $"{RootAttributeLast1.Item1}: {RootAttributeLast1.Item2}\n"
             + $"{ExtensionAttribute1.Item1}: \"{ExtensionAttribute1.Item2}\"\n"
             + $"{RootAttributeLast2.Item1}: \"{RootAttributeLast2.Item2}\"\n";
-
-        [Test]
-        public void ProtoParse<T>() where T : IProtoMessage<T>, new()
+        
+        private void ProtoParse<T>() where T : IProtoMessage<T>, new()
         {
             var pm = new T();
             pm.Parse(_protoText);
