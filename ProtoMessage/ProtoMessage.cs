@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
@@ -161,25 +162,13 @@ namespace ProtoMessage
             _subMessagesMatrix[currentParentMessages.Peek()].ChildIndexes.Add(_subMessagesMatrix.Count - 1);
             currentParentMessages.Push(_subMessagesMatrix.Count - 1);
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ProcessCloseBrace(Stack<int> currentParentMessages)
-        {
-            currentParentMessages.Pop();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ProcessNewLine(ref bool isPreviousColon)
-        {
-            isPreviousColon = false;
-        }
+        
 
         // Should be called once after instance creation
         public void Parse(string protoAsText)
         {
             _protoAsText = protoAsText;
-            _attributesMatrix =
-                new Attribute[_protoAsText.Length / 5]; // because minimal possible attribute has 5 chars
+            _attributesMatrix = new Attribute[_protoAsText.Length / 5];  // minimal possible attribute has 5 chars
             _subMessagesMatrix.Add(new SubMessage(0, protoAsText)); // root message that contains 0-level messages
 
             int currentAttributeIndex = 0;
@@ -191,20 +180,24 @@ namespace ProtoMessage
             // iterate the input text only once and save all control symbol positions
             for (int i = 0; i < _protoAsText.Length; i++)
             {
-                char c = _protoAsText[i];
-                switch (c)
+                switch (isPreviousColon)
                 {
-                    case ':' when !isPreviousColon:
-                        ProcessColon(ref currentAttributeIndex, i, currentParentMessages, ref isPreviousColon);
+                    case false:
+                        switch (_protoAsText[i])
+                        {
+                            case ':':
+                                ProcessColon(ref currentAttributeIndex, i, currentParentMessages, ref isPreviousColon);
+                                break;
+                            case '{':
+                                ProcessOpenBrace(i, currentParentMessages);
+                                break;
+                            case '}':
+                                currentParentMessages.Pop();
+                                break;
+                        }
                         break;
-                    case '{' when !isPreviousColon:
-                        ProcessOpenBrace(i, currentParentMessages);
-                        break;
-                    case '}' when !isPreviousColon:
-                        ProcessCloseBrace(currentParentMessages);
-                        break;
-                    case '\n':
-                        ProcessNewLine(ref isPreviousColon);
+                    case true:
+                        isPreviousColon = _protoAsText[i] != '\n';
                         break;
                 }
             }
