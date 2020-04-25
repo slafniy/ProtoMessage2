@@ -151,9 +151,9 @@ namespace ProtoMessageBench
             }
             if (caseToRun == "ProtoMessage4")
             {
-                JustParse<ProtoMessage8>(uint.Parse(args[0]), testData);
-                PartialRead<ProtoMessage8>(uint.Parse(args[0]), testData);
-                ReadAll<ProtoMessage8>(uint.Parse(args[0]), testData);
+                JustParse<ProtoMessage4>(uint.Parse(args[0]), testData);
+                PartialRead<ProtoMessage4>(uint.Parse(args[0]), testData);
+                ReadAll<ProtoMessage4>(uint.Parse(args[0]), testData);
                 return;
             }
 
