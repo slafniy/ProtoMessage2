@@ -141,21 +141,23 @@ namespace ProtoMessageBench
             var dataReader = new StreamReader(dataStream ?? throw new Exception("Cannot read data"));
             string testData = dataReader.ReadToEnd();
 
-            switch (args.Length > 1 ? args[1] : "")
+            string caseToRun = args.Length > 1 ? args[1] : null;
+            if (caseToRun == "ProtoMessage")
             {
-                case "ProtoMessage":
-                    JustParse<ProtoMessage.ProtoMessage>(uint.Parse(args[0]), testData);
-                    PartialRead<ProtoMessage.ProtoMessage>(uint.Parse(args[0]), testData);
-                    ReadAll<ProtoMessage.ProtoMessage>(uint.Parse(args[0]), testData);
-                    break;
-                case "ProtoMessage4":
-                    JustParse<ProtoMessage4>(uint.Parse(args[0]), testData);
-                    PartialRead<ProtoMessage4>(uint.Parse(args[0]), testData);
-                    ReadAll<ProtoMessage4>(uint.Parse(args[0]), testData);
-                    break;
-                default:
-                    throw new Exception("Provide ProtoMessage number - 0, 2 or 4 in second argument");
+                JustParse<ProtoMessage.ProtoMessage>(uint.Parse(args[0]), testData);
+                PartialRead<ProtoMessage.ProtoMessage>(uint.Parse(args[0]), testData);
+                ReadAll<ProtoMessage.ProtoMessage>(uint.Parse(args[0]), testData);
+                return;
             }
+            if (caseToRun == "ProtoMessage4")
+            {
+                JustParse<ProtoMessage8>(uint.Parse(args[0]), testData);
+                PartialRead<ProtoMessage8>(uint.Parse(args[0]), testData);
+                ReadAll<ProtoMessage8>(uint.Parse(args[0]), testData);
+                return;
+            }
+
+            throw new Exception("Provide ProtoMessage number - 0, 2 or 4 in second argument");
         }
     }
 }

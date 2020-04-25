@@ -85,7 +85,7 @@ namespace ProtoMessage
 
             var attributeValueStartPosition = 0;
 
-            char char1;
+            int char1 = 0;
 
             int isLineStart = 0;
             int attributeValue = 1;
@@ -169,7 +169,38 @@ namespace ProtoMessage
 
         public bool HasKey(string name)
         {
-            throw new NotImplementedException();
+            for (int i = 0; i < _subMessages.Count; i++)
+            {
+                var subMessages = _subMessages[i];
+                if (AreEqual(subMessages.Item1, name))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private List<string> _keys;
+
+        public List<string> Keys
+        {
+            get
+            {
+                if (_keys != null)
+                {
+                    return _keys;
+                }
+
+                _keys = new List<string>();
+                for (int i = 0; i < _subMessages.Count; i++)
+                {
+                    var subMessages = _subMessages[i];
+                    _keys.Add(ParseLazyStringValue(subMessages.Item1));
+                }
+
+                return _keys;
+            }
         }
 
         private string ParseLazyStringValue(LazyString lazyString)
@@ -309,6 +340,5 @@ namespace ProtoMessage
         }
 
 
-        public List<string> Keys => throw new NotImplementedException();
     }
 }
