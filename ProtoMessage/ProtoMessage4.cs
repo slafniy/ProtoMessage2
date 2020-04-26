@@ -11,6 +11,7 @@ namespace ProtoMessage
 
         private string _protoAsText;
 
+
         public ProtoMessage4()
         {
         }
@@ -78,10 +79,9 @@ namespace ProtoMessage
             List<LazyStringTuple> currentMessageAttributes = currentProtoMessage._attributes;
             List<LazyStringProtoMessage4Tuple> currentMessagSubMessages = currentProtoMessage._subMessages;
 
-            var elementNameStartPosition = 0;
+            var entryNameStartPosition = -1;
 
-            var attributeNameStartPosition = 0;
-            LazyString attributeName = LazyString.Empty;
+            LazyString? attributeName = null;
 
             var attributeValueStartPosition = 0;
 
@@ -102,15 +102,14 @@ namespace ProtoMessage
                     case 131104:
                         if (isLineStart == 0)
                         {
-                            attributeNameStartPosition = i + 1;
-                            elementNameStartPosition = i + 1;
+                            entryNameStartPosition = i;
                         }
 
                         break;
 
                     // ':'		(attributeValue << 17) |':'	131130	int
                     case 131130:
-                        attributeName = new LazyString(attributeNameStartPosition, i);
+                        attributeName = new LazyString(entryNameStartPosition + 1, i);
 
                         attributeValueStartPosition = i + 1;
                         attributeValue = 0;
@@ -123,7 +122,7 @@ namespace ProtoMessage
                         messagesStack.Push(currentProtoMessage);
                         currentProtoMessage = new ProtoMessage4(protoAsText);
                         currentMessagSubMessages.Add(new LazyStringProtoMessage4Tuple(
-                            new LazyString(elementNameStartPosition, i - 1),
+                            new LazyString(entryNameStartPosition + 1, i - 1),
                             currentProtoMessage));
 
                         currentMessageAttributes = currentProtoMessage._attributes;
@@ -145,15 +144,13 @@ namespace ProtoMessage
                     // '\n' 		(attributeValue << 17) | '\n'	131082	int
                     case 10:
                     case 131082:
-                        if (!attributeName.isEqual(LazyString.Empty))
+                        if (attributeName != null)
                         {
-                            currentMessageAttributes.Add(new LazyStringTuple(attributeName,
-                                new LazyString(attributeValueStartPosition, i)));
-                            attributeName = LazyString.Empty;
+                            currentMessageAttributes.Add(new LazyStringTuple(attributeName.Value, new LazyString(attributeValueStartPosition, i)));
+                            attributeName = null;
                         }
 
-                        attributeNameStartPosition = i + 1;
-                        elementNameStartPosition = i + 1;
+                        entryNameStartPosition = i;
 
                         isLineStart = 0;
                         attributeValue = 1;
